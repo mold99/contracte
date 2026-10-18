@@ -122,7 +122,7 @@ input.invalid{border-color:var(--warn)}
       <p class="sub">Completezi datele o singură dată și descarci contractul Word gata completat.</p>
     </div>
     </header>
-  <p class="note"><span class="dot"></span>Funcționează fără internet. Datele rămân doar pe acest dispozitiv și nu se trimit nicăieri. Valorile precompletate la prima deschidere sunt exemple inventate.</p>
+  <p class="note"><span class="dot"></span>Datele rămân doar pe acest dispozitiv și nu se trimit nicăieri. Formularul se deschide gol de fiecare dată; câmpurile lăsate goale apar în contract ca linii ____ de completat de mână.</p>
 
   <!-- WEB FORM -->
   <section id="p-web">
@@ -231,7 +231,7 @@ const num=s=>{const v=parseFloat(String(s).replace(/\s/g,'').replace(',','.'));r
 /* ---------- build field values for the template ---------- */
 function compute(s){
   const cur=s.moneda||'lei';
-  const ch=num(s.chirie_n),g=num(s.garantie_n),ln=LUNI_N[s.luni_avans]||1;
+  const ch=num(s.chirie_n),g=num(s.garantie_n),ln=LUNI_N[s.luni_avans]||0;
   const total=(isFinite(ch)?ch*ln:0)+(isFinite(g)?g:0);
   const v={
     nr:s.nr, data_contract:fmtDate(s.data_contract),
@@ -240,7 +240,7 @@ function compute(s){
     adresa:s.adresa, suprafata:s.suprafata, persoane:s.persoane, drept:s.drept, spatiu:s.spatiu,
     chirie:isFinite(ch)?money(ch,cur):'', garantie:isFinite(g)?money(g,cur):'',
     zi_plata:s.zi?`${s.zi} a fiecărei luni`:'', termen:s.termen, luni_avans:s.luni_avans,
-    suma_totala:(isFinite(ch)&&isFinite(g))?money(total,cur):'',
+    suma_totala:(isFinite(ch)&&isFinite(g)&&ln)?money(total,cur):'',
     data_predare:fmtDate(s.data_predare||s.data_contract)
   };
   (s.inv||[]).slice(0,15).forEach((x,i)=>{v['inv_'+(i+1)]=x});
@@ -283,9 +283,10 @@ async function offerFile(state){
 }
 
 /* =================== WEB FORM =================== */
-const fill=(id,arr)=>{const s=document.getElementById(id);arr.forEach(x=>{const o=document.createElement('option');o.value=o.textContent=x;s.appendChild(o)})};
+const fill=(id,arr)=>{const s=document.getElementById(id);const o0=document.createElement('option');o0.value='';o0.textContent='— lasă loc liber —';s.appendChild(o0);arr.forEach(x=>{const o=document.createElement('option');o.value=o.textContent=x;s.appendChild(o)})};
 fill('f-drept',DREPT);fill('f-termen',TERMEN);fill('f-luni',LUNI);
 const FIELDS=['nr','data_contract','locator_nume','locator_idnp','locator_tel','locator_domiciliu','drept','locatar_nume','locatar_idnp','locatar_tel','locatar_domiciliu','persoane','adresa','suprafata','spatiu','chirie_n','moneda','zi','termen','luni','garantie_n','data_predare'];
+const EMPTY={moneda:'lei'};
 const EXAMPLE={nr:'12',data_contract:todayISO(),locator_nume:'Elena Rusu',locator_idnp:'2004001234567',locator_tel:'069 000 111',locator_domiciliu:'mun. Chișinău, str. Exemplu 1, ap. 2',drept:'proprietate',
   locatar_nume:'Andrei Munteanu',locatar_idnp:'2009007654321',locatar_tel:'078 000 222',locatar_domiciliu:'or. Exemplu, str. Școlii 3',persoane:'membrii familiei sale',
   adresa:'Exemplu 15, ap. 34',suprafata:'54',spatiu:'întregul bun imobil',chirie_n:'6000',moneda:'lei',zi:'25',termen:TERMEN[2],luni:LUNI[0],garantie_n:'6000',data_predare:'',
@@ -297,7 +298,7 @@ const H=(v,ph)=>v?`<span class="v">${esc(v)}</span>`:`<span class="v e">${esc(ph
 function render(){
   const s=formState();const {v}=compute(s);
   ['locator_idnp','locatar_idnp'].forEach(k=>{const ok=!s[k]||idnpOk(s[k]);$(k).classList.toggle('invalid',!ok);const h=document.getElementById('h-'+k);h.textContent=ok?'13 cifre':`${s[k].replace(/\D/g,'').length} cifre, trebuie 13`;h.classList.toggle('bad',!ok)});
-  document.getElementById('calc').innerHTML=v.suma_totala?`La semnare: ${esc(s.luni)} de chirie + garanția = <b>${esc(v.suma_totala)}</b>`:'Completează chiria și garanția ca să calculez suma totală la semnare.';
+  document.getElementById('calc').innerHTML=v.suma_totala?`La semnare: ${esc(s.luni)} de chirie + garanția = <b>${esc(v.suma_totala)}</b>`:'Completează chiria, lunile în avans și garanția ca să calculez suma totală la semnare.';
   document.getElementById('paper').innerHTML=`
   <h3>CONTRACT DE LOCAȚIUNE nr. ${H(v.nr,'[nr.]')}</h3>
   <p class="row"><span>mun. Chișinău</span><span>${H(v.data_contract,'[data]')}</span></p>
@@ -319,13 +320,12 @@ function render(){
   <p class="sec">Anexa nr. 1 – Act de predare-primire</p>
   <p>Data predării: ${H(v.data_predare,'[data]')}. Spațiul transmis: ${H(v.spatiu,'[spațiul]')}.</p>
   <p>${s.inv.length?s.inv.slice(0,15).map((x,i)=>`${i+1}. <span class="v">${esc(x)}</span>`).join('<br>'):'<span class="v e">[lista de bunuri]</span>'}</p>`;
-  try{localStorage.setItem('cl-form',JSON.stringify({...s,inv:$('inv').value}))}catch(e){}
 }
-let saved=null;try{saved=JSON.parse(localStorage.getItem('cl-form'))}catch(e){}
-setForm(saved||EXAMPLE);render();
+try{localStorage.removeItem('cl-form')}catch(e){}
+setForm(EMPTY);render();
 document.getElementById('f').addEventListener('input',render);
 document.getElementById('f').addEventListener('change',render);
-document.getElementById('f-clear').onclick=()=>{setForm({moneda:'lei',drept:DREPT[0],termen:TERMEN[2],luni:LUNI[0]});render();document.getElementById('f-status').textContent=''};
+document.getElementById('f-clear').onclick=()=>{setForm(EMPTY);render();document.getElementById('f-status').textContent=''};
 document.getElementById('f').addEventListener('submit',async e=>{
   e.preventDefault();const s=formState();const st_=document.getElementById('f-status');
   const bad=['locator_idnp','locatar_idnp'].filter(k=>s[k]&&!idnpOk(s[k]));
