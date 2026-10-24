@@ -79,11 +79,16 @@ h1 em{font-style:normal;color:var(--gold-d)}
 .imgbox{position:relative;border-radius:var(--r);overflow:hidden;aspect-ratio:4/3;background:var(--soft);transition:box-shadow .2s}
 .imgbox img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s,filter .3s}
 .cbtn:hover .imgbox img{transform:scale(1.03)}
-.sel-dot{position:absolute;top:12px;right:12px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.95);display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+.sel-dot{position:absolute;top:10px;right:10px;height:40px;min-width:40px;border-radius:999px;border:0;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;gap:6px;padding:0 10px;box-shadow:0 2px 6px rgba(0,0,0,.12);cursor:pointer;z-index:2;font-weight:700;font-size:13px;color:var(--navy)}
+.sel-dot::before{content:"";width:18px;height:18px;border-radius:50%;border:2px solid var(--navy);flex:none}
+.sel-dot svg{position:absolute;left:12px;width:14px;height:14px}
+.card.sel .sel-dot::before{background:#fff;border-color:#fff}
+.card.sel .sel-dot svg path{stroke:var(--navy)}
+.cbtn:hover .imgbox{box-shadow:0 10px 26px rgba(30,42,59,.12)}
 .sel-dot svg{width:18px;height:18px;opacity:0}
 .card.sel .imgbox{box-shadow:0 0 0 3px var(--navy)}
 .card.sel .imgbox img{filter:brightness(.86)}
-.card.sel .sel-dot{background:var(--navy)}.card.sel .sel-dot svg{opacity:1}
+.card.sel .sel-dot{background:var(--navy);color:#fff}.card.sel .sel-dot svg{opacity:1}
 .card.excl .imgbox{box-shadow:0 0 0 3px var(--gold)}
 .card.excl.sel .imgbox{box-shadow:0 0 0 3px var(--gold),0 0 0 6px var(--navy)}
 .flags{position:absolute;left:12px;top:12px;display:flex;gap:6px;flex-wrap:wrap}
@@ -219,6 +224,55 @@ h1 em{font-style:normal;color:var(--gold-d)}
 .mainnav a{padding:7px 16px;border-radius:999px;font-weight:700;color:var(--ink);text-decoration:none;font-size:14px}
 .mainnav a.on{background:var(--navy);color:#fff}
 @media (max-width:620px){.hrow{flex-wrap:wrap;height:auto;padding:10px 0 4px}.mainnav{order:3;width:100%}.mainnav a{flex:1;text-align:center}}
+/* offer page */
+.ov{position:fixed;inset:0;z-index:48;background:var(--bg);overflow:auto;opacity:0;visibility:hidden;transform:translateY(12px);transition:opacity .25s,transform .25s,visibility .25s;padding-bottom:120px}
+.ov.open{opacity:1;visibility:visible;transform:none}
+.ovbar{position:sticky;top:0;z-index:3;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.ovbar-in{display:flex;align-items:center;justify-content:space-between;height:56px}
+.back{border:0;background:none;font-weight:700;color:var(--navy);cursor:pointer;font-size:15px;padding:8px 0}
+.ovid{color:var(--sub);font-size:13px;font-weight:600}
+.ovgrid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);grid-template-areas:'gal info' 'det info';gap:28px 32px;margin-top:22px;align-items:start}.g-gal{grid-area:gal;min-width:0}.g-det{grid-area:det;min-width:0}.oinfo{grid-area:info}
+.gal{position:relative;border-radius:var(--r);overflow:hidden;background:var(--soft)}
+.gal-strip{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;aspect-ratio:4/3}
+.gal-strip::-webkit-scrollbar{display:none}
+.gal-strip img{flex:0 0 100%;width:100%;height:100%;object-fit:cover;scroll-snap-align:start;display:block}
+.gal.arv .gal-strip img:first-child{filter:grayscale(1) brightness(.75)}
+.gal .ribbon{pointer-events:none}
+.gal-n{position:absolute;right:12px;bottom:12px;background:rgba(20,26,36,.7);color:#fff;border-radius:8px;padding:3px 9px;font-size:12px;font-weight:700}
+.gal-arr{position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border-radius:50%;border:0;background:rgba(255,255,255,.92);cursor:pointer;font-size:20px;color:var(--navy);box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.gal-arr.l{left:12px}.gal-arr.r{right:12px}
+.gal .flags{z-index:1}
+.thumbs{display:flex;gap:8px;margin-top:10px;overflow-x:auto}
+.thumbs button{flex:none;width:86px;height:64px;border-radius:10px;overflow:hidden;border:2px solid transparent;padding:0;cursor:pointer;background:none}
+.thumbs button.on{border-color:var(--navy)}
+.thumbs img{width:100%;height:100%;object-fit:cover;display:block}
+.oinfo{display:flex;flex-direction:column;gap:16px;position:sticky;top:76px}
+.oinfo h1{font-size:28px;margin:0;line-height:1.2}
+.oprice{font-size:30px;font-weight:800;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px}
+.oprice small{font-size:15px;color:var(--sub);font-weight:600}
+.oprice s{font-size:17px;color:var(--sub);font-weight:600}
+.specs{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.specs div{padding:12px 16px;border-top:1px solid var(--line)}
+.specs div:nth-child(-n+2){border-top:0}
+.specs div:nth-child(odd){border-right:1px solid var(--line)}
+.specs span{display:block;font-size:12px;color:var(--sub);font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.specs b{font-size:16px}
+.specs b.miss{color:var(--warn)}
+.oacts{display:flex;flex-direction:column;gap:8px}
+.oacts .row2 .btn{padding:12px}
+.agcard{display:flex;align-items:center;gap:12px}
+.agcard .av{width:48px;height:48px;font-size:15px}
+.agcard b{display:block}.agcard span{color:var(--sub);font-size:14px}
+.agcard .btn{margin-left:auto;padding:10px 14px;text-decoration:none}
+.osec{margin-top:28px}
+.osec h2{font-size:20px;margin:0 0 12px}
+.desc{white-space:pre-wrap;line-height:1.6;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;font-size:15px}
+.tl{list-style:none;margin:0;padding:0;background:var(--card);border:1px solid var(--line);border-radius:var(--r)}
+.tl li{display:flex;justify-content:space-between;gap:12px;padding:11px 16px;border-top:1px solid var(--line);font-size:14px}
+.tl li:first-child{border-top:0}
+.tl li span{color:var(--sub);white-space:nowrap}
+.priv{background:var(--gold-soft);border-radius:12px;padding:10px 14px;font-size:13px;color:var(--navy)}
+@media (max-width:900px){.ovgrid{grid-template-columns:minmax(0,1fr);grid-template-areas:'gal' 'info' 'det';gap:18px}.oinfo{position:static}.oinfo h1{font-size:23px}.oprice{font-size:26px}}
 footer{color:var(--sub);font-size:13px;margin:40px 0 0}
 
 @media (max-width:980px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.search,.cur{display:none}}
@@ -266,7 +320,7 @@ footer{color:var(--sub);font-size:13px;margin:40px 0 0}
     <h1>Oferte <em>agenție</em></h1>
     <div class="count" id="count"></div>
   </div>
-  <p class="sim"><b>Simulare.</b> Agenții și telefoanele sunt inventate. Folosește <b>„Intră ca”</b> din colț ca să vezi pagina ca alt agent: fiecare își poate gestiona doar ofertele lui.</p>
+  <p class="sim"><b>Simulare.</b> Agenții și telefoanele sunt inventate. Atinge un anunț ca să-l deschizi; bifa <b>Selectează</b> de pe poză îl adaugă la promovare. Cu <b>„Intră ca”</b> vezi pagina ca alt agent.</p>
   <div id="list"></div>
   <div class="green" style="margin-top:34px"><span class="eyebrow" style="color:#c9d2cc">Cum funcționează</span>
     <p style="margin:8px 0 0">Selectezi ofertele și apeși <b>Promovează</b>. La ofertele tale ai <b>Gestionează</b>: schimbi prețul, pui arvună, marchezi HOT sau Exclusiv. Fiecare schimbare ajunge la clopoțel și în grupul de Telegram. Cine a promovat deja oferta primește și un mesaj personal.</p></div>
@@ -279,6 +333,7 @@ footer{color:var(--sub);font-size:13px;margin:40px 0 0}
   <div class="dh"><h2 id="dT"></h2><button class="close" id="dClose" type="button" aria-label="Închide">✕</button></div>
   <div class="db" id="dBody"></div>
 </aside>
+<div class="ov" id="ov" role="dialog" aria-modal="true" aria-label="Oferta"><div class="ovbar"><div class="wrap ovbar-in"><button class="back" id="ovBack" type="button">‹ Înapoi la oferte</button><span class="ovid" id="ovId"></span></div></div><div class="wrap" id="ovBody"></div></div>
 <div class="toast" id="toast" role="status"></div>
 
 <script>/*!
@@ -364,6 +419,7 @@ const short=o=>`${o.rooms} cam, ${o.area} m² · ${o.sector}, ${o.street}`;
 const CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';
 const clock=t=>new Date(t).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
 
+function toggleSel(o){if(o.arv){toast('Oferta e arvunită, nu se poate promova');return}sel.has(o.id)?sel.delete(o.id):sel.add(o.id);renderList();if($('ov').classList.contains('open'))renderOffer(o.id)}
 /* ---------- filters ---------- */
 const BACK_DAYS=14;const isBack=o=>!o.arv&&o.back&&Date.now()-o.back.t<BACK_DAYS*D;
 const BACK_WHY={arv:'Arvuna a căzut',owner:'Proprietarul a revenit',other:'Altă situație'};
@@ -375,7 +431,7 @@ function visible(){
 }
 const SORTS={new:'Cele mai noi',pa:'Preț crescător',pd:'Preț descrescător',m2:'€/m² crescător'};
 const sorter={new:(a,b)=>b.added-a.added,pa:(a,b)=>a.price-b.price,pd:(a,b)=>b.price-a.price,m2:(a,b)=>a.price/a.area-b.price/b.area};
-function renderList(){
+function renderList(){if(typeof ovId!=='undefined'&&ovId&&$('ov').classList.contains('open'))setTimeout(()=>ovId&&renderOffer(ovId),0);
   const items=visible();
   $('count').textContent=`${items.length} ${items.length===1?'anunț':'anunțuri'} ${deal==='sale'?'de vânzare':'în chirie'} · grupate pe zone`;
   const L=$('list');L.innerHTML='';
@@ -405,9 +461,9 @@ function cardEl(o){
   const others=new Set(h.filter(x=>x.who!==ME).map(x=>x.who)).size,m=missing(o),own=o.ag===ME;
   const pr=o.prices,prev=pr.length>1?pr[pr.length-2].p:null,diff=prev?o.price-prev:0;
   const el=document.createElement('div');el.className='card'+(sel.has(o.id)?' sel':'')+(o.excl?' excl':'')+(o.arv?' arv':'');
-  el.innerHTML=`<button class="cbtn" type="button" aria-pressed="${sel.has(o.id)}"><div class="imgbox"><img src="${IMG[o.photos[0]]}" alt="">
+  el.innerHTML=`<button class="cbtn" type="button" aria-label="Deschide oferta"><div class="imgbox"><img src="${IMG[o.photos[0]]}" alt="">
     <span class="flags">${o.hot?'<span class="flag hot">🔥 HOT</span>':''}${o.excl?'<span class="flag excl">★ EXCLUSIV</span>':''}${isBack(o)?`<span class="flag back">↺ ${backLbl(o).toUpperCase()}</span>`:''}</span>
-    <span class="sel-dot">${CHECK}</span><span class="photos-n">${o.photos.length} foto</span>
+<span class="photos-n">${o.photos.length} foto</span>
     ${o.arv?`<div class="ribbon"><div>ARVUNĂ<small>${o.arv.by==='agent'?'DE AGENT':'DE PROPRIETAR'}</small></div></div>`:''}</div>
     <div class="ct">${title(o)}</div><div class="ca">${esc(place(o))}</div>
     <div class="cp">${nf(o.price)} €${o.deal==='rent'?'<small>/lună</small>':''}${prev?`<s>${nf(prev)} €</s>`:''}${o.deal==='sale'?`<small>${nf(o.price/o.area)} €/m²</small>`:''}</div></button>
@@ -418,9 +474,11 @@ function cardEl(o){
       ${others?`<span class="tag">Promovată de ${others} ${others===1?'agent':'agenți'}</span>`:''}
       ${m.length?`<span class="tag up">Lipsește: ${m.map(k=>MISS_LABEL[k]).join(', ')}</span>`:''}</div>
     ${own||(o.deal==='rent'&&!o.arv)?`<div class="cact">${own?'<button class="manage" type="button">Gestionează ofertă</button>':''}${o.deal==='rent'&&!o.arv?`<a class="manage contract" href="${contractLink(o)}">Contract</a>`:''}</div>`:''}`;
-  el.querySelector('.cbtn').onclick=()=>{
-    if(o.arv){toast('Oferta e arvunită, nu se poate promova');return}
-    sel.has(o.id)?sel.delete(o.id):sel.add(o.id);renderList()};
+  const dot=document.createElement('button');dot.type='button';dot.className='sel-dot';dot.innerHTML=CHECK+`<span class="sel-lbl">${sel.has(o.id)?'Selectată':'Selectează'}</span>`;
+  dot.setAttribute('aria-label',(sel.has(o.id)?'Deselectează':'Selectează')+' pentru promovare');dot.setAttribute('aria-pressed',sel.has(o.id));
+  el.appendChild(dot);
+  dot.onclick=e=>{e.stopPropagation();toggleSel(o)};
+  el.querySelector('.cbtn').onclick=()=>openOffer(o.id);
   if(own)el.querySelector('.manage').onclick=()=>openManage(o);
   return el;
 }
@@ -574,10 +632,64 @@ $('tgBtn').onclick=()=>{
   TG.forEach((m,i)=>{if(!m.to||m.to===ME)tgSeen[ME+'|'+i]=1});renderBadges();
 };
 
+/* ---------- offer page ---------- */
+let ovId=null;
+function openOffer(id,fromPop){ovId=id;renderOffer(id);$('ov').classList.add('open');$('ov').scrollTop=0;document.body.style.overflow='hidden';if(!fromPop)history.pushState({of:id},'','#oferta-'+id)}
+function closeOffer(fromPop){if(!ovId)return;ovId=null;$('ov').classList.remove('open');document.body.style.overflow='';if(!fromPop&&location.hash.startsWith('#oferta-'))history.back()}
+$('ovBack').onclick=()=>closeOffer();
+addEventListener('popstate',()=>{const m=location.hash.match(/^#oferta-(\d+)$/);if(m)openOffer(+m[1],true);else closeOffer(true)});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&ovId&&!$('drawer').classList.contains('open'))closeOffer()});
+function renderOffer(id){
+  const o=OFFERS.find(x=>x.id===id);if(!o)return;
+  const a=AG(o.ag),own=o.ag===ME,pr=o.prices,prev=pr.length>1?pr[pr.length-2].p:null,m=missing(o);
+  const h=(HIST[o.id]||[]).slice().sort((x,y)=>y.t-x.t);
+  $('ovId').textContent=`Ofertă #${o.id} · adăugată ${ago(o.added)}`;
+  setup={...PREFS};const g=gen(o,'ro',0);
+  const events=[...pr.map((x,i)=>({t:x.t,txt:i===0?`Adăugată la ${nf(x.p)} €`:`Preț ${x.p<pr[i-1].p?'redus':'modificat'}: ${nf(pr[i-1].p)} → ${nf(x.p)} €`})),
+    ...(o.arv?[{t:o.arv.t,txt:`Arvună ${o.arv.by==='agent'?'de agent':'de proprietar'}`}]:[]),
+    ...(o.back?[{t:o.back.t,txt:`${backLbl(o)}: ${backWhy(o).toLowerCase()}`}]:[]),
+    ...h.map(x=>({t:x.t,txt:`Promovată pe ${PLAT[x.p].split(' / ')[0]} de ${AG(x.who).name}`}))].sort((x,y)=>y.t-x.t);
+  const spec=(l,v,k)=>`<div><span>${l}</span><b${!v&&k?' class="miss"':''}>${v||(k?'lipsește':'—')}</b></div>`;
+  $('ovBody').innerHTML=`<div class="ovgrid">
+   <div class="g-gal"><div class="gal${o.arv?' arv':''}"><div class="gal-strip" id="galStrip">${o.photos.map(p=>`<img src="${IMG[p]}" alt="">`).join('')}</div>
+     <span class="flags">${o.hot?'<span class="flag hot">🔥 HOT</span>':''}${o.excl?'<span class="flag excl">★ EXCLUSIV</span>':''}${isBack(o)?`<span class="flag back">↺ ${backLbl(o).toUpperCase()}</span>`:''}</span>
+     ${o.arv?`<div class="ribbon"><div>ARVUNĂ<small>${o.arv.by==='agent'?'DE AGENT':'DE PROPRIETAR'}</small></div></div>`:''}
+     ${o.photos.length>1?'<button class="gal-arr l" id="gL" type="button" aria-label="Poza anterioară">‹</button><button class="gal-arr r" id="gR" type="button" aria-label="Poza următoare">›</button>':''}
+     <span class="gal-n" id="galN">1 / ${o.photos.length}</span></div>
+     <div class="thumbs" id="thumbs">${o.photos.map((p,i)=>`<button type="button" data-i="${i}" class="${i?'':'on'}" aria-label="Poza ${i+1}"><img src="${IMG[p]}" alt=""></button>`).join('')}</div></div>
+   <aside class="oinfo">
+     <div><h1>${title(o)}</h1><div class="ca" style="white-space:normal;margin-top:6px">${esc(place(o))}</div></div>
+     <div class="oprice">${nf(o.price)} €${o.deal==='rent'?'<small>/lună</small>':''}${prev?`<s>${nf(prev)} €</s>`:''}${o.deal==='sale'?`<small>${nf(o.price/o.area)} €/m²</small>`:''}</div>
+     <div class="tags">${o.arv?`<span class="tag arv">Arvună ${o.arv.by==='agent'?'de agent':'de proprietar'} · ${ago(o.arv.t)}</span>`:''}${isBack(o)?`<span class="tag back">${backWhy(o)} · ${ago(o.back.t)}</span>`:''}${o.neg?'<span class="tag">Negociabil</span>':''}${m.length?`<span class="tag up">Lipsește: ${m.map(k=>MISS_LABEL[k]).join(', ')}</span>`:''}</div>
+     <div class="box agcard">${avHTML(a)}<div><b>${esc(a.name)}${own?' · tu':''}</b><span>Agentul ofertei · ${a.tel}</span></div>${own?'':`<a class="btn out" href="tel:${a.tel.replace(/\s/g,'')}">Sună</a>`}</div>
+     <div class="oacts">
+       ${o.arv?'<div class="priv">Oferta e arvunită: nu se poate promova.</div>':`<div class="row2"><button class="btn gold" id="oPromo" type="button">Promovează</button><button class="btn out" id="oSel" type="button">${sel.has(o.id)?'✓ Selectată':'+ Selectează'}</button></div>`}
+       ${o.deal==='rent'&&!o.arv?`<a class="btn ghost full" style="text-decoration:none" href="${contractLink(o)}">Fă contract</a>`:''}
+       ${own?'<button class="btn navy full" id="oManage" type="button">Gestionează oferta</button>':''}
+     </div>
+     ${h.length?`<div class="lock">Promovată de: ${[...new Set(h.map(x=>AG(x.who).name))].join(', ')}</div>`:''}
+     <div class="lock">🔒 Telefonul proprietarului și numărul apartamentului se văd doar de agentul ofertei, pe site-ul real.</div>
+   </aside>
+   <div class="g-det"><div class="osec" style="margin-top:0"><h2>Caracteristici</h2><div class="specs">${spec('Tranzacție',o.deal==='rent'?'Chirie':'Vânzare')}${spec('Camere',o.rooms)}${spec('Suprafață',o.area+' m²')}${spec('Etaj',`${o.floor} din ${o.floors}`)}${spec('Tip bloc',o.bloc,1)}${spec('Stare',o.stare,1)}${spec('Încălzire',o.inc,1)}${spec('Zonă',o.sector)}${o.extra.length?`<div style="grid-column:1/-1;border-right:0"><span>În plus</span><b>${esc(o.extra.join(', '))}</b></div>`:''}</div></div>
+     <div class="osec"><h2>Descriere</h2><div class="desc">${esc(g.d.replace(/\n\n(Pentru detalii|Детали)[\s\S]*$/,''))}</div></div>
+     <div class="osec"><h2>Istoric</h2><ul class="tl">${events.map(e=>`<li><b style="font-weight:600">${esc(e.txt)}</b><span>${ago(e.t)}</span></li>`).join('')}</ul></div>
+   </div>
+   </div></div>`;
+  const st=$('galStrip'),n=o.photos.length,go=i=>st.scrollTo({left:st.clientWidth*Math.max(0,Math.min(n-1,i)),behavior:'smooth'});
+  const cur=()=>Math.round(st.scrollLeft/st.clientWidth);
+  st.onscroll=()=>{const i=cur();$('galN').textContent=`${i+1} / ${n}`;$('thumbs').querySelectorAll('button').forEach((b,j)=>b.classList.toggle('on',j===i))};
+  $('thumbs').querySelectorAll('button').forEach(b=>b.onclick=()=>go(+b.dataset.i));
+  if($('gL')){$('gL').onclick=()=>go(cur()-1);$('gR').onclick=()=>go(cur()+1)}
+  if($('oSel'))$('oSel').onclick=()=>toggleSel(o);
+  if($('oPromo'))$('oPromo').onclick=()=>{sel.add(o.id);renderList();startPromo([o.id])};
+  if($('oManage'))$('oManage').onclick=()=>openManage(o);
+}
+
 /* ---------- promote ---------- */
-$('promoBtn').onclick=()=>{
+$('promoBtn').onclick=()=>startPromo([...sel]);
+function startPromo(ids){
   setup={...PREFS};
-  const list=[...sel].map(id=>OFFERS.find(o=>o.id===id)),n=list.length;
+  const list=ids.map(id=>OFFERS.find(o=>o.id===id)),n=list.length;
   openDrawer(`Promovează ${n} ${n===1?'ofertă':'oferte'}`,`<div class="box">${agentHTML()}<p style="margin:10px 0 0;font-size:13px;color:var(--sub)">Numărul tău intră în toate textele.</p></div>
     <div><div class="lbl">Oferte selectate</div><div class="strip">${list.map(o=>`<div class="ph"><img src="${IMG[o.photos[0]]}" alt=""><span class="n">${o.rooms} cam · ${o.sector}</span></div>`).join('')}</div></div>
     <div><div class="lbl">Unde publici</div>${seg('sPlat',PLAT,setup.plat)}</div>
@@ -589,8 +701,8 @@ $('promoBtn').onclick=()=>{
   const wmPrev=()=>{$('sWm').innerHTML=setup.wm?`<div class="lbl">Cum arată poza pe ${PLAT[setup.plat].split(' / ')[0]}</div><img class="wmbig" data-wm="${first}" data-plat="${setup.plat}" data-on="1" src="${IMG[first]}" alt=""><p class="lock" style="margin:6px 0 0">${WM_POS[PREFS.wmPos]} · ${WM_C[PREFS.wmc[setup.plat]]} · ${Math.round(PREFS.wmOp*100)}%. Le schimbi din profil.</p>`:'';wmHydrate($('sWm'))};
   const bo=()=>bindOpts('so',setup,wmPrev);
   bindSeg('sPlat',v=>{setup.plat=v;setup.emoji=v!=='999';$('sOptsBox').innerHTML=optsHTML('so',setup);bo();wmPrev()});bindSeg('sLang',v=>setup.lang=v);bo();wmPrev();
-  $('startBtn').onclick=()=>{run={ids:[...sel],i:0,variant:{},published:{},edits:{}};renderStep()};
-};
+  $('startBtn').onclick=()=>{run={ids:ids.slice(),i:0,variant:{},published:{},edits:{}};renderStep()};
+}
 
 /* ---------------- text generation (templates; on the site: AI) ---------------- */
 const HOOK_RO=['Se vinde','Vă propunem spre vânzare','Disponibil pentru vânzare'], HOOK_RENT=['Se dă în chirie','Oferim în chirie','Disponibil pentru chirie'];
@@ -681,6 +793,7 @@ async function savePhotos(o){
   TG.push({t:now-5*H,to:'ir',html:`Oferta pe care ai promovat-o pe 999.md a fost arvunită de proprietar.\n${esc(title(o2))}\n${esc(place(o2))}\n👉 Scoate anunțul sau marchează-l „rezervat”.`});
 })();
 renderMe();renderList();
+{const m=location.hash.match(/^#oferta-(\d+)$/);if(m&&OFFERS.some(o=>o.id===+m[1]))openOffer(+m[1],true)}
 </script>
 </body>
 </html>
