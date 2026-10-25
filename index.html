@@ -597,9 +597,11 @@ function simGroupPost(){
 function shrink(file){return new Promise(res=>{const u=URL.createObjectURL(file),im=new Image();im.onload=()=>{const k=Math.min(1,1400/im.naturalWidth),c=document.createElement('canvas');c.width=Math.round(im.naturalWidth*k);c.height=Math.round(im.naturalHeight*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);try{res(c.toDataURL('image/jpeg',.85))}catch(e){res(u)}};im.onerror=()=>res(u);im.src=u})}
 
 function contractLink(o){
-  /* the contract already prints "mun. Chișinău, str." before this field */
-  const adresa=`${o.street.replace(/^str\.\s*/,'')} nr. `;
-  return 'contracte.html#din-oferta='+encodeURIComponent(JSON.stringify({deal:o.deal,title:title(o),place:place(o),price:money(o),adresa,suprafata:String(o.area),chirie:String(o.price),moneda:'euro'}));
+  /* full address; the agent adds the house and apartment number */
+  const adresa=`${isCity(o.sector)?'or. '+o.sector:'mun. Chișinău'}, ${o.street} `;
+  const d={deal:o.deal,title:title(o),place:place(o),price:money(o),adresa,suprafata:String(o.area),moneda:'euro'};
+  if(o.deal==='rent')d.chirie=String(o.price);else d.pret=String(o.price);
+  return 'contracte.html#din-oferta='+encodeURIComponent(JSON.stringify(d));
 }
 function cardEl(o){
   const a=AG(o.ag),h=HIST[o.id]||[],mineP=h.filter(x=>x.who===ME).sort((x,y)=>y.t-x.t)[0];
@@ -618,7 +620,7 @@ ${noPhoto(o)?'':`<span class="photos-n">${o.photos.length} foto</span>`}
       ${mineP?`<span class="tag me">Promovată de tine · ${PLAT[mineP.p].split(' ')[0]}</span>`:''}
       ${others?`<span class="tag">Promovată de ${others} ${others===1?'agent':'agenți'}</span>`:''}
       ${o.src==='tg'&&!o.checked?'<span class="tag tgt">Din Telegram · verifică</span>':''}${m.length||noPhoto(o)?`<span class="tag up">Lipsește: ${[...m.map(k=>MISS_LABEL[k]),...(noPhoto(o)?['poze']:[])].join(', ')}</span>`:''}</div>
-    ${own||(o.deal==='rent'&&!o.arv)?`<div class="cact">${own?'<button class="manage" type="button">Gestionează ofertă</button>':''}${o.deal==='rent'&&!o.arv?`<a class="manage contract" href="${contractLink(o)}">Contract</a>`:''}</div>`:''}`;
+    <div class="cact">${own?'<button class="manage" type="button">Gestionează oferta</button>':''}<a class="manage contract" href="${contractLink(o)}">${o.deal==='rent'?'Contract':'Acord de arvună'}</a></div>`;
   const dot=document.createElement('button');dot.type='button';dot.className='sel-dot';dot.innerHTML=CHECK+`<span class="sel-lbl">${sel.has(o.id)?'Selectată':'Selectează'}</span>`;
   dot.setAttribute('aria-label',(sel.has(o.id)?'Deselectează':'Selectează')+' pentru promovare');dot.setAttribute('aria-pressed',sel.has(o.id));
   el.appendChild(dot);
@@ -789,7 +791,7 @@ function openManage(o){
     <div class="box"><div class="lbl">Preț</div><div class="pricerow"><input id="mPrice" type="number" inputmode="numeric" value="${o.price}" aria-label="Preț nou"><button class="btn navy" id="mPriceB" type="button">Salvează</button></div>
       <ul class="hist">${pr.slice().reverse().map((x,i)=>`<li><span>${i===0?'<b>acum</b>':ago(x.t)}</span><b>${nf(x.p)} €</b></li>`).join('')}</ul></div>
     <div class="box"><div class="lbl">Arvună</div>${seg('mArv',{none:'Fără',agent:'De agent',proprietar:'De proprietar'},o.arv?o.arv.by:'none')}
-      <p class="lock" style="margin:10px 0 0">Când e arvunită, poza principală devine gri cu panglica ARVUNĂ și nimeni nu o mai poate promova. Dacă arvuna cade, alegi „Fără” și oferta apare ${BACK_DAYS} zile în „Din nou în vânzare”.</p></div>
+      <p class="lock" style="margin:10px 0 0">Când e arvunită, poza principală devine gri cu panglica ARVUNĂ și nimeni nu o mai poate promova. Dacă arvuna cade, alegi „Fără” și oferta apare ${BACK_DAYS} zile în „Din nou în vânzare”.</p><a class="btn out full" style="margin-top:10px;text-decoration:none" href="${contractLink(o)}">Fă acordul de arvună</a></div>
     <div class="box"><div class="opt" ${o.deal==='rent'?'hidden':''}><label for="mHot">🔥 HOT · renovat de agent<small>apartamentul l-ai renovat tu și îl vinzi</small></label><input class="sw hot" type="checkbox" id="mHot" ${o.hot?'checked':''}></div>
       <div class="opt"><label for="mExcl">★ Exclusiv<small>ramă aurie, apare prima în zonă</small></label><input class="sw excl" type="checkbox" id="mExcl" ${o.excl?'checked':''}></div>
       <div class="opt"><label for="mBack">↺ ${backLbl(o)}<small>apare ${BACK_DAYS} zile în fila verde${o.arv?'; scoate și arvuna':''}</small></label><input class="sw back" type="checkbox" id="mBack" ${isBack(o)?'checked':''}></div>
@@ -852,7 +854,7 @@ function renderOffer(id){
      <div class="box agcard">${avHTML(a)}<div><b>${esc(a.name)}${own?' · tu':''}</b><span>Agentul ofertei · ${a.tel}</span></div>${own?'':`<a class="btn out" href="tel:${a.tel.replace(/\s/g,'')}">Sună</a>`}</div>
      <div class="oacts">
        ${o.arv?'<div class="priv">Oferta e arvunită: nu se poate promova.</div>':`<div class="row2"><button class="btn gold" id="oPromo" type="button">Promovează</button><button class="btn out" id="oSel" type="button">${sel.has(o.id)?'✓ Selectată':'+ Selectează'}</button></div>`}
-       ${o.deal==='rent'&&!o.arv?`<a class="btn ghost full" style="text-decoration:none" href="${contractLink(o)}">Fă contract</a>`:''}
+       <a class="btn ghost full" style="text-decoration:none" href="${contractLink(o)}">${o.deal==='rent'?'Contract sau acord de arvună':'Acord de arvună'}</a>
        ${own?'<button class="btn navy full" id="oManage" type="button">Gestionează oferta</button>':''}
      </div>
      ${h.length?`<div class="lock">Promovată de: ${[...new Set(h.map(x=>AG(x.who).name))].join(', ')}</div>`:''}
