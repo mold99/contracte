@@ -578,6 +578,14 @@ const DK = (() => {
       out.push(b);
     });
     out.forEach(b => { b.a = b.a.map(x => x.replace(/\{@(\w+)\}/g, (_, k) => labels[k] || '?')); });
+    /* the last chapter stays on the same page as the parties' signatures, so they never end up alone on a page */
+    out.forEach((b, k) => {
+      if (b.t !== 'PC') return;
+      for (let q = k - 1, n = 0; q >= 0 && n < 12; q--, n++) {
+        const c = out[q]; if (!['SP', 'P', 'I', 'J', 'H'].includes(c.t)) break;
+        c.keep = true; if (c.t === 'H' || c.pb) break;
+      }
+    });
     return out;
   }
   /* inline text → tokens [{text,bold}|{field}] */
@@ -595,7 +603,11 @@ const DK = (() => {
 
   /* ---------- HTML blocks for A4.render (fields stay as .f spans; A4 fills them) ---------- */
   function inlineHTML(str) { return tokens(str).map(tk => tk.field ? `<span class="f" data-k="${tk.field}"></span>` : tk.bold ? `<b>${esc(tk.text)}</b>` : esc(tk.text)).join(''); }
-  const PS = 'margin:0;line-height:1.15;font-size:11pt;text-align:justify';
+  /* compaction levels: the page picks the lightest one that saves a page (font pt, title pt, heading before/after, item/paragraph after) */
+  const FITS = [{ fs: 11, ts: 12, hb: 8, ha: 3, ia: 1.5, pa: 3 }, { fs: 11, ts: 12, hb: 5, ha: 2, ia: 0.5, pa: 2 },
+                { fs: 10.5, ts: 11.5, hb: 5, ha: 2, ia: 0.5, pa: 2 }, { fs: 10, ts: 11, hb: 4, ha: 1.5, ia: 0, pa: 1.5 }];
+  const fitOf = f => FITS[Math.max(0, Math.min(FITS.length - 1, f | 0))];
+  let PS = 'margin:0;line-height:1.15;font-size:11pt;text-align:justify';
   function partyCellHTML(p, lang) {
     const l = L[lang], role = PARTY[p][lang], line = (lab, k) => `<p style="${PS};text-align:left">${lab}: <span class="f" data-k="${k}"></span></p>`;
     let h = `<p style="${PS};text-align:left;font-weight:700">${role}</p><p style="${PS}">&nbsp;</p>`;
@@ -604,23 +616,24 @@ const DK = (() => {
     h += `<p style="${PS}">&nbsp;</p><p style="${PS};text-align:left">${l.sign} ____________${p === 'agentie' ? ' ' + l.ls : ''}</p>`;
     return h;
   }
-  function toHTML(blocks, lang) {
-    const l = L[lang];
+  function toHTML(blocks, lang, fit) {
+    const l = L[lang], F = fitOf(fit);
+    PS = `margin:0;line-height:1.15;font-size:${F.fs}pt;text-align:justify`;
     return blocks.map(b => {
-      const pb = b.pb ? ' pbb' : '';
+      const pb = (b.pb ? ' pbb' : '') + (b.keep ? ' kn kl' : '');
       switch (b.t) {
-        case 'T': return `<p class="kn${pb}" style="${PS};text-align:center;font-weight:700;font-size:12pt;margin-bottom:2pt">${inlineHTML(b.a[0])}</p>`;
+        case 'T': return `<p class="kn${pb}" style="${PS};text-align:center;font-weight:700;font-size:${F.ts}pt;margin-bottom:2pt">${inlineHTML(b.a[0])}</p>`;
         case 'ST': return `<p class="kn${pb}" style="${PS};text-align:center;font-weight:700;margin-bottom:8pt">${inlineHTML(b.a[0])}</p>`;
         case 'DL': return `<p class="rt${pb}" style="${PS};margin:6pt 0 8pt"><span>${inlineHTML(b.a[0])}</span><span>${inlineHTML(b.a[1] || '')}</span></p>`;
-        case 'P': return `<p class="${pb}" style="${PS};margin-bottom:3pt">${inlineHTML(b.a[0])}</p>`;
+        case 'P': return `<p class="${pb}" style="${PS};margin-bottom:${F.pa}pt">${inlineHTML(b.a[0])}</p>`;
         case 'PC': return `<p class="kn${pb}" style="${PS};text-align:center;margin-bottom:3pt">${inlineHTML(b.a[0])}</p>`;
         case 'PR': return `<p class="${pb}" style="${PS};text-align:right">${inlineHTML(b.a[0])}</p>`;
         case 'SP': return `<p class="${pb}" style="${PS}">&nbsp;</p>`;
-        case 'H': return `<p class="kn${pb}" style="${PS};text-align:center;font-weight:700;margin:8pt 0 3pt">${b.num} ${inlineHTML(b.a[1])}</p>`;
-        case 'I': return `<p class="${pb}" style="${PS};margin-left:28.35pt;text-indent:-28.35pt;margin-bottom:1.5pt"><span class="nl" style="width:28.35pt">${b.num}</span>${inlineHTML(b.a[1])}</p>`;
-        case 'J': return `<p class="${pb}" style="${PS};margin-left:62.35pt;text-indent:-34pt;margin-bottom:1.5pt"><span class="nl" style="width:34pt">${b.num}</span>${inlineHTML(b.a[1])}</p>`;
+        case 'H': return `<p class="kn${pb}" style="${PS};text-align:center;font-weight:700;margin:${F.hb}pt 0 ${F.ha}pt">${b.num} ${inlineHTML(b.a[1])}</p>`;
+        case 'I': return `<p class="${pb}" style="${PS};margin-left:28.35pt;text-indent:-28.35pt;margin-bottom:${F.ia}pt"><span class="nl" style="width:28.35pt">${b.num}</span>${inlineHTML(b.a[1])}</p>`;
+        case 'J': return `<p class="${pb}" style="${PS};margin-left:62.35pt;text-indent:-34pt;margin-bottom:${F.ia}pt"><span class="nl" style="width:34pt">${b.num}</span>${inlineHTML(b.a[1])}</p>`;
         case 'SIGN': { const ps = b.a[0].split(','), w = (100 / ps.length).toFixed(2);
-          return `<table class="${pb}" style="width:100%;margin-top:6pt"><tr>${ps.map(p => `<td style="width:${w}%;padding:0 4pt 0 0">${partyCellHTML(p, lang)}</td>`).join('')}</tr></table>`; }
+          return `<table class="sign${pb}" style="width:100%;margin-top:6pt"><tr>${ps.map(p => `<td style="width:${w}%;padding:0 4pt 0 0">${partyCellHTML(p, lang)}</td>`).join('')}</tr></table>`; }
         case 'TINV': { let r = `<tr><td style="border:1px solid #000;width:9%"><p style="${PS};text-align:center;font-weight:700">${l.nr}</p></td><td style="border:1px solid #000;width:61%"><p style="${PS};text-align:center;font-weight:700">${l.den}</p></td><td style="border:1px solid #000;width:30%"><p style="${PS};text-align:center;font-weight:700">${l.stare}</p></td></tr>`;
           for (let k = 1; k <= 15; k++) r += `<tr><td style="border:1px solid #000"><p style="${PS};text-align:center">${k}</p></td><td style="border:1px solid #000"><p style="${PS};text-align:left"><span class="f" data-k="inv_${k}"></span>&nbsp;</p></td><td style="border:1px solid #000"><p style="${PS}">&nbsp;</p></td></tr>`;
           return `<table class="${pb}" style="width:100%;margin:3pt 0 6pt">${r}</table>`; }
@@ -649,7 +662,7 @@ const DK = (() => {
   }
   function para(inner, o) {
     o = o || {}; let pp = '';
-    if (o.keep) pp += '<w:keepNext/>'; if (o.pb) pp += '<w:pageBreakBefore/>';
+    if (o.keep) pp += '<w:keepNext/>'; if (o.keepLines) pp += '<w:keepLines/>'; if (o.pb) pp += '<w:pageBreakBefore/>';
     if (o.tabs) pp += `<w:tabs>${o.tabs}</w:tabs>`;
     pp += `<w:spacing w:before="${o.before || 0}" w:after="${o.after || 0}" w:line="240" w:lineRule="auto"/>`;
     if (o.ind) pp += o.ind;
@@ -673,21 +686,21 @@ const DK = (() => {
     x += para('', {}) + P(`${l.sign} ____________${p === 'agentie' ? ' ' + l.ls : ''}`);
     return x;
   }
-  function bodyXML(blocks, lang, V, blank) {
-    const l = L[lang];
+  function bodyXML(blocks, lang, V, blank, fit) {
+    const l = L[lang], F = fitOf(fit), tw = x => Math.round(x * 20);
     return blocks.map(b => {
-      const pb = b.pb;
+      const pb = b.pb, kp = b.keep ? 1 : 0;
       switch (b.t) {
-        case 'T': return para(runs(b.a[0], V, blank, '<w:sz w:val="24"/><w:szCs w:val="24"/>', true), { jc: 'center', keep: 1, pb, after: 40 });
+        case 'T': return para(runs(b.a[0], V, blank, `<w:sz w:val="${F.ts * 2}"/><w:szCs w:val="${F.ts * 2}"/>`, true), { jc: 'center', keep: 1, pb, after: 40 });
         case 'ST': return para(runs(b.a[0], V, blank, '', true), { jc: 'center', keep: 1, pb, after: 160 });
         case 'DL': return para(runs(b.a[0], V, blank) + '<w:r><w:tab/></w:r>' + runs(b.a[1] || '', V, blank), { jc: 'left', tabs: `<w:tab w:val="right" w:pos="${TW}"/>`, before: 120, after: 160, pb });
-        case 'P': return para(runs(b.a[0], V, blank), { pb, after: 60 });
+        case 'P': return para(runs(b.a[0], V, blank), { pb, after: tw(F.pa), keep: kp, keepLines: kp });
         case 'PC': return para(runs(b.a[0], V, blank), { jc: 'center', pb, keep: 1, after: 60 });
         case 'PR': return para(runs(b.a[0], V, blank), { jc: 'right', pb });
-        case 'SP': return para('', { pb });
-        case 'H': return para(`<w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">${b.num} </w:t></w:r>` + runs(b.a[1], V, blank, '', true), { jc: 'center', keep: 1, pb, before: 160, after: 60 });
-        case 'I': return para(`<w:r><w:t>${b.num}</w:t></w:r><w:r><w:tab/></w:r>` + runs(b.a[1], V, blank), { tabs: '<w:tab w:val="left" w:pos="567"/>', ind: '<w:ind w:left="567" w:hanging="567"/>', pb, after: 30 });
-        case 'J': return para(`<w:r><w:t>${b.num}</w:t></w:r><w:r><w:tab/></w:r>` + runs(b.a[1], V, blank), { tabs: '<w:tab w:val="left" w:pos="1247"/>', ind: '<w:ind w:left="1247" w:hanging="680"/>', pb, after: 30 });
+        case 'SP': return para('', { pb, keep: kp });
+        case 'H': return para(`<w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">${b.num} </w:t></w:r>` + runs(b.a[1], V, blank, '', true), { jc: 'center', keep: 1, keepLines: kp, pb, before: tw(F.hb), after: tw(F.ha) });
+        case 'I': return para(`<w:r><w:t>${b.num}</w:t></w:r><w:r><w:tab/></w:r>` + runs(b.a[1], V, blank), { tabs: '<w:tab w:val="left" w:pos="567"/>', ind: '<w:ind w:left="567" w:hanging="567"/>', pb, after: tw(F.ia), keep: kp, keepLines: kp });
+        case 'J': return para(`<w:r><w:t>${b.num}</w:t></w:r><w:r><w:tab/></w:r>` + runs(b.a[1], V, blank), { tabs: '<w:tab w:val="left" w:pos="1247"/>', ind: '<w:ind w:left="1247" w:hanging="680"/>', pb, after: tw(F.ia), keep: kp, keepLines: kp });
         case 'SIGN': { const ps = b.a[0].split(','), w = Math.floor(TW / ps.length);
           return (pb ? para('', { pb: 1 }) : '') + tableXML(ps.map(() => w), [ps.map(p => partyCellXML(p, lang, V, blank))], false); }
         case 'TINV': { const W = [850, 5800, 2848], hd = t => para(`<w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t>${X(t)}</w:t></w:r>`, { jc: 'center' });
@@ -707,13 +720,14 @@ const DK = (() => {
     const page = para('<w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:instrText xml:space="preserve"> PAGE </w:instrText></w:r><w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:t>1</w:t></w:r><w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:fldChar w:fldCharType="end"/></w:r>', { jc: 'right' });
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">${page}${tableXML(parties.map(() => w), [cells], false)}</w:ftr>`;
   }
-  async function docx(def, lang, V, blank) {
+  async function docx(def, lang, V, blank, fit) {
+    const F = fitOf(fit);
     const blocks = parse(def.body[lang], V);
     const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
     const sect = `<w:sectPr><w:footerReference w:type="default" r:id="rIdF"/><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="993" w:right="707" w:bottom="1276" w:left="1701" w:header="567" w:footer="510" w:gutter="0"/></w:sectPr>`;
-    const doc = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${W}><w:body>${bodyXML(blocks, lang, V, blank)}${sect}</w:body></w:document>`;
+    const doc = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${W}><w:body>${bodyXML(blocks, lang, V, blank, fit)}${sect}</w:body></w:document>`;
     const lng = lang === 'ru' ? 'ru-RU' : 'ro-RO';
-    const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles ${W}><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="Times New Roman" w:cs="Times New Roman"/><w:color w:val="000000"/><w:sz w:val="22"/><w:szCs w:val="22"/><w:lang w:val="${lng}" w:eastAsia="${lng}" w:bidi="ar-SA"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style><w:style w:type="table" w:default="1" w:styleId="TableNormal"><w:name w:val="Normal Table"/><w:tblPr><w:tblInd w:w="0" w:type="dxa"/><w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:left w:w="108" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:right w:w="108" w:type="dxa"/></w:tblCellMar></w:tblPr></w:style></w:styles>`;
+    const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles ${W}><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="Times New Roman" w:cs="Times New Roman"/><w:color w:val="000000"/><w:sz w:val="${F.fs * 2}"/><w:szCs w:val="${F.fs * 2}"/><w:lang w:val="${lng}" w:eastAsia="${lng}" w:bidi="ar-SA"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style><w:style w:type="table" w:default="1" w:styleId="TableNormal"><w:name w:val="Normal Table"/><w:tblPr><w:tblInd w:w="0" w:type="dxa"/><w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:left w:w="108" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:right w:w="108" w:type="dxa"/></w:tblCellMar></w:tblPr></w:style></w:styles>`;
     const settings = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:settings ${W}><w:defaultTabStop w:val="708"/><w:characterSpacingControl w:val="doNotCompress"/><w:compat><w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/></w:compat></w:settings>`;
     const ct = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/><Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>`;
     const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>`;
@@ -725,8 +739,8 @@ const DK = (() => {
     zip.file('word/footer1.xml', footerXML(def.parties, lang)); zip.file('word/_rels/document.xml.rels', drels);
     return zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
   }
-  function frag(def, lang, V) { const blocks = parse(def.body[lang], V); return { body: toHTML(blocks, lang), footer: footerHTML(def.parties, lang) }; }
-  return { RO, RU, money, months, days, date, addMonths, num, fmtNum, frag, docx, parse, PARTY, L };
+  function frag(def, lang, V, fit) { const blocks = parse(def.body[lang], V); return { body: toHTML(blocks, lang, fit), footer: footerHTML(def.parties, lang) }; }
+  return { RO, RU, money, months, days, date, addMonths, num, fmtNum, frag, docx, parse, PARTY, L, FITS: FITS.length };
 })();
 
 /* ===== Contract de locațiune — RO (corectat: pct. 1–5, 7, 9, 10 + 4 clauze din varianta RU) ===== */
@@ -1368,12 +1382,34 @@ function render() {
   document.getElementById('barInfo').innerHTML = n ? `<b>${n}</b> ${n === 1 ? 'câmp rămâne liber' : 'câmpuri rămân libere'} ca linie ____` : '<b>Toate câmpurile sunt completate</b>';
   lastV = V; clearTimeout(pvTimer); pvTimer = setTimeout(drawPreview, 180);
 }
+/* The document is compacted only when that saves a page: e.g. the rental contract ends on sheet 3 with the signatures. */
+let FIT = 0;
+function signInfo(host) {
+  const t = host.querySelector('table.sign'); if (!t) return null;
+  const pg = t.closest('.a4-page'), body = pg.querySelector('.a4-body'), br = body.getBoundingClientRect();
+  return { page: [...host.querySelectorAll('.a4-page')].indexOf(pg) + 1, spare: br.height - (t.getBoundingClientRect().bottom - br.top) };
+}
+function bestFit(host, V) {
+  const at = f => A4.render(host, DK.frag(DOC, LANG, V, f), V, blankFn);
+  let n = at(0); const base = signInfo(host);
+  if (!base || base.page === 1) return { fit: 0, n };
+  for (let f = 1; f < DK.FITS; f++) {
+    const m = at(f), si = signInfo(host);
+    if (si && si.page < base.page && si.spare >= 24) return { fit: f, n: m };   // ~2 lines spare, so Word lays it out the same
+  }
+  return { fit: 0, n: at(0) };
+}
+function fitFor(V) {
+  let h = document.getElementById('fitHost');
+  if (!h) { h = document.createElement('div'); h.id = 'fitHost'; h.setAttribute('aria-hidden', 'true'); h.style.cssText = 'position:absolute;left:-10000px;top:0;width:210mm;visibility:hidden;pointer-events:none'; document.body.appendChild(h); }
+  const r = bestFit(h, V).fit; h.innerHTML = ''; return r;
+}
 function drawPreview() {
   const host = document.getElementById('pvHost'), wrap = document.getElementById('paperWrap');
   if (!DOC || !lastV) return;
   if (wrap.offsetParent === null) { pvDirty = true; return; }
   pvDirty = false; host.style.transform = 'none'; host.style.width = ''; host.style.height = '';
-  const st = wrap.scrollTop, n = A4.render(host, DK.frag(DOC, LANG, lastV), lastV, blankFn);
+  const st = wrap.scrollTop, r = bestFit(host, lastV), n = r.n; FIT = r.fit;
   document.getElementById('pgCount').textContent = n + (n === 1 ? ' pagină' : ' pagini');
   fitPreview(); wrap.scrollTop = st;
 }
@@ -1395,7 +1431,7 @@ document.getElementById('pvHost').addEventListener('click', e => { const t = e.t
 
 /* ---------- output ---------- */
 async function download() {
-  const s = state(), { V } = F().compute(s, LANG, DOC), blob = await DK.docx(DOC, LANG, V, blankFn), name = F().fileName(s, LANG);
+  const s = state(), { V } = F().compute(s, LANG, DOC), blob = await DK.docx(DOC, LANG, V, blankFn, fitFor(V)), name = F().fileName(s, LANG);
   const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000);
   return name;
 }
