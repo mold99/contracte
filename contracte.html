@@ -353,7 +353,7 @@ const A4 = (() => {
       const k = el.dataset.k;
       const val = v[k];
       if (val && String(val).trim()) { el.textContent = val; el.classList.remove('blank'); }
-      else { el.textContent = k.startsWith('inv_') ? '' : blank(k); el.classList.add('blank'); }
+      else { el.textContent = /^(inv|met)_/.test(k) ? '' : blank(k); el.classList.add('blank'); }
     });
   }
 
@@ -637,9 +637,10 @@ const DK = (() => {
         case 'TINV': { let r = `<tr><td style="border:1px solid #000;width:9%"><p style="${PS};text-align:center;font-weight:700">${l.nr}</p></td><td style="border:1px solid #000;width:61%"><p style="${PS};text-align:center;font-weight:700">${l.den}</p></td><td style="border:1px solid #000;width:30%"><p style="${PS};text-align:center;font-weight:700">${l.stare}</p></td></tr>`;
           for (let k = 1; k <= 15; k++) r += `<tr><td style="border:1px solid #000"><p style="${PS};text-align:center">${k}</p></td><td style="border:1px solid #000"><p style="${PS};text-align:left"><span class="f" data-k="inv_${k}"></span>&nbsp;</p></td><td style="border:1px solid #000"><p style="${PS}">&nbsp;</p></td></tr>`;
           return `<table class="${pb}" style="width:100%;margin:3pt 0 6pt">${r}</table>`; }
-        case 'TMET': { const c = t => `<td style="border:1px solid #000"><p style="${PS};text-align:left">${t}</p></td>`;
+        case 'TMET': { const c = t => `<td style="border:1px solid #000"><p style="${PS};text-align:left">${t}</p></td>`, fill = b.a[0] === '1';
+          const v = k => fill ? `<span class="f" data-k="met_${k}"></span>&nbsp;` : '&nbsp;';
           let r = `<tr>${[l.serv, l.ind, l.serv, l.ind].map(x => `<td style="border:1px solid #000;width:25%"><p style="${PS};text-align:center;font-weight:700">${x}</p></td>`).join('')}</tr>`;
-          l.met.forEach(([a, b2]) => { r += `<tr>${c(a)}${c('&nbsp;')}${c(b2)}${c('&nbsp;')}</tr>`; });
+          l.met.forEach(([a, b2], q) => { r += `<tr>${c(a)}${c(v(2 * q + 1))}${c(b2)}${c(v(2 * q + 2))}</tr>`; });
           return `<table class="${pb}" style="width:100%;margin:3pt 0 6pt">${r}</table>`; }
       }
       return '';
@@ -708,7 +709,8 @@ const DK = (() => {
           for (let k = 1; k <= 15; k++) { const v = V['inv_' + k]; rows.push([para(`<w:r><w:t>${k}</w:t></w:r>`, { jc: 'center' }), para(v ? `<w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">${X(v)}</w:t></w:r>` : '', { jc: 'left' }), para('', {})]); }
           return (pb ? para('', { pb: 1 }) : '') + tableXML(W, rows, true) + para('', {}); }
         case 'TMET': { const W = [2600, 2149, 2600, 2149], c = t => para(t ? `<w:r><w:t xml:space="preserve">${X(t)}</w:t></w:r>` : '', { jc: 'left' }), hd = t => para(`<w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t>${X(t)}</w:t></w:r>`, { jc: 'center' });
-          const rows = [[hd(l.serv), hd(l.ind), hd(l.serv), hd(l.ind)], ...l.met.map(([a, b2]) => [c(a), c(''), c(b2), c('')])];
+          const fill = b.a[0] === '1', cv = k => { const x = fill ? V['met_' + k] : ''; return para(x && String(x).trim() ? `<w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">${X(x)}</w:t></w:r>` : '', { jc: 'left' }); };
+          const rows = [[hd(l.serv), hd(l.ind), hd(l.serv), hd(l.ind)], ...l.met.map(([a, b2], q) => [c(a), cv(2 * q + 1), c(b2), cv(2 * q + 2)])];
           return (pb ? para('', { pb: 1 }) : '') + tableXML(W, rows, true) + para('', {}); }
       }
       return '';
@@ -840,7 +842,7 @@ TINV
 P|3. Obiecții la calitatea Bunului imobil și a bunurilor mobile preluate: {ob_pred_calitate}.
 P|4. Obiecții la starea tehnică a Bunului imobil: {ob_pred_tehnic}.
 P|5. Datele contoarelor la data întocmirii prezentului act:
-TMET
+TMET|1
 PB
 PR|Anexa nr. 2
 PR|la Contractul de locațiune nr. {nr} din {data_contract}
@@ -956,7 +958,7 @@ TINV
 P|3. Возражения по качеству Недвижимого имущества и принятого движимого имущества: {ob_pred_calitate}.
 P|4. Возражения по техническому состоянию Недвижимого имущества: {ob_pred_tehnic}.
 P|5. Показания счётчиков на дату составления настоящего акта:
-TMET
+TMET|1
 PB
 PR|Приложение № 2
 PR|к Договору найма № {nr} от {data_contract}
@@ -1181,6 +1183,10 @@ const party = (p, title) => ({ id: p, title, fields: [
   f(p + '_domiciliu', 'Domiciliu', 'text', { ph: 'adresa din buletin' }),
   f(p + '_tel', 'Telefon', 'tel', { ph: '069 123 456' }),
 ] });
+/* meter rows of the Annex 1 table, numbered as in the table (left, right, left, right…); meters first in the form */
+const METERS = [[1, 'Energia electrică', 'ex. 12 345 kWh'], [3, 'Apă', 'ex. 245 m³'], [5, 'Gaz', 'ex. 1 230 m³'], [7, 'Canalizare', 'ex. achitat la zi'],
+  [2, 'Iluminarea scării', 'ex. achitat la zi'], [4, 'Ascensor', 'ex. achitat la zi'], [9, 'Salubrizare', 'ex. achitat la zi'], [6, 'Telefon', 'ex. nu este'],
+  [8, 'Cablu TV', 'ex. nu este'], [10, 'Internet', 'ex. achitat la zi']];
 const SEG = {
   moneda: [['lei', 'lei'], ['euro', 'euro']],
   termen: [['', '—'], ['6', '6 luni'], ['11', '11'], ['12', '12'], ['24', '24']],
@@ -1204,6 +1210,8 @@ const FORMS = {
       { id: 'bani', title: 'Bani și termen', fields: [f('chirie_n', 'Chiria lunară', 'num', { ph: 'ex. 6000' }), f('moneda', 'Moneda', 'seg', { seg: 'moneda', def: 'lei' }), f('zi', 'Plata până pe', 'num', { ph: 'zi a lunii, ex. 25', max: 2 }), f('termen', 'Termenul', 'seg', { seg: 'termen' }), f('data_inceput', 'Începe la', 'date', { opt: 1 }), f('luni', 'Avans la semnare', 'seg', { seg: 'luni' }), f('garantie_n', 'Garanția', 'num', { ph: 'ex. 6000' })],
         foot: 'Dacă „Începe la” rămâne gol, termenul începe la data predării sau a contractului.' },
       { id: 'anexa', title: 'Anexa 1 · predare', fields: [f('data_predare', 'Data predării', 'date', { opt: 1 }), f('inv', 'Bunuri mobile, câte unul pe rând', 'inv', { ph: 'Frigider\nMașină de spălat\nCanapea', opt: 1 })], foot: 'Dacă data predării rămâne goală, se folosește data contractului.' },
+      { id: 'contoare', title: 'Anexa 1 · contoare', fields: METERS.map(([k, label, ph]) => f('met_' + k, label, 'text', { ph, opt: 1 })),
+        foot: 'Indicațiile din ziua predării. Ce lași gol rămâne de scris de mână. Tabelul din Anexa 2 (restituirea) rămâne gol: se completează la sfârșitul chiriei.' },
     ],
     extra: [f('persoane_opt', 'Locuiește cu', 'seg', { seg: 'persoane_opt', group: 'locatar' }), f('persoane', 'Cine anume', 'text', { ph: 'ex. soția, Ana Botnari', group: 'locatar', when: s => s.persoane_opt === 'alt' })],
     map: { chirie: 'chirie_n', garantie: 'garantie_n', suma_totala: 'chirie_n', zi_plata: 'zi', luni_avans: 'luni', data_sfarsit: 'data_inceput', persoane: 'persoane_opt' },
@@ -1218,6 +1226,7 @@ const FORMS = {
       if (start) { V.data_inceput = DK.date(start, lang); if (tn) V.data_sfarsit = DK.date(DK.addMonths(start, tn), lang); }
       const total = isFinite(ch) && isFinite(g) && ln ? ch * ln + g : null; V.suma_totala = total ? DK.money(total, cur, lang) : '';
       (s.inv || []).forEach((x, i) => V['inv_' + (i + 1)] = x);
+      for (let k = 1; k <= 10; k++) V['met_' + k] = s['met_' + k];
       return { V, sum: total ? { label: 'De achitat la semnare', big: `${DK.fmtNum(total)} ${cur}`, words: `${DK.months(ln, 'ro')} de chirie + garanția` } : { label: 'De achitat la semnare', empty: 'Completează chiria, avansul și garanția' } };
     },
     fileName: (s, lang) => `Contract_locatiune_${clean(s.nr) || 'nr'}_${clean(last(s.locatar_nume)) || 'chirias'}_${lang.toUpperCase()}.docx`,
