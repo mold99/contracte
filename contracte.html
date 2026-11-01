@@ -512,9 +512,19 @@ const DK = (() => {
       if (rest) p.push(tri(rest, !!fem)); return p.join(' '); };
     return { words, form };
   })();
+  const EN = (() => {
+    const O = ['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen'];
+    const T = ['','','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'];
+    const tri = n => { const h = Math.floor(n / 100), r = n % 100, o = []; if (h) o.push(O[h] + ' hundred');
+      if (r) o.push(r < 20 ? O[r] : T[Math.floor(r / 10)] + (r % 10 ? '-' + O[r % 10] : '')); return o.join(' '); };
+    const words = n => { if (n === 0) return 'zero'; const p = [], mil = Math.floor(n / 1e6), th = Math.floor(n % 1e6 / 1000), rest = n % 1000;
+      if (mil) p.push(tri(mil) + ' million'); if (th) p.push(tri(th) + ' thousand'); if (rest) p.push(tri(rest)); return p.join(' '); };
+    return { words };
+  })();
   const fmtNum = n => Math.round(n).toLocaleString('ro-RO').replace(/\./g, ' ').replace(/ /g, ' ');
   function money(n, cur, lang) {
     if (!isFinite(n)) return '';
+    if (lang === 'en') return `${fmtNum(n)} (${EN.words(n)}) ${cur === 'lei' ? (n === 1 ? 'leu' : 'lei') : 'euro'}`;
     if (lang === 'ru') {
       const w = RU.words(n, false), unit = cur === 'lei' ? RU.form(n, 'лей', 'лея', 'леев') : 'евро';
       return `${fmtNum(n)} (${w}) ${unit}`;
@@ -525,18 +535,22 @@ const DK = (() => {
   /* "6 (șase) luni" / "6 (шесть) месяцев" */
   function months(n, lang) {
     if (!n) return '';
+    if (lang === 'en') return `${n} (${EN.words(n)}) ${n === 1 ? 'month' : 'months'}`;
     if (lang === 'ru') return `${n} (${RU.words(n, false)}) ${RU.form(n, 'месяц', 'месяца', 'месяцев')}`;
     const w = n === 1 ? 'una' : RO.words(n, true);
     return `${n} (${w}) ${n === 1 ? 'lună' : 'luni'}`;
   }
   function days(n, lang) {
+    if (lang === 'en') return `${n} (${EN.words(n)}) ${n === 1 ? 'day' : 'days'}`;
     if (lang === 'ru') return `${n} (${RU.words(n, false)}) ${RU.form(n, 'день', 'дня', 'дней')}`;
     return `${n} (${n === 1 ? 'o' : RO.words(n, true)}) ${n === 1 ? 'zi' : 'zile'}`;
   }
   const MRO = ['ianuarie','februarie','martie','aprilie','mai','iunie','iulie','august','septembrie','octombrie','noiembrie','decembrie'];
   const MRU = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+  const MEN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   function date(iso, lang) {
     if (!iso) return ''; const [y, m, d] = iso.split('-').map(Number); if (!y || !m || !d) return '';
+    if (lang === 'en') return `${d} ${MEN[m - 1]} ${y}`;
     return lang === 'ru' ? `${d} ${MRU[m - 1]} ${y} г.` : `${d} ${MRO[m - 1]} ${y}`;
   }
   function addMonths(iso, n) { // end date of a term: start + n months − 1 day
@@ -552,14 +566,21 @@ const DK = (() => {
     vanzator: { ro: 'Vânzător', ru: 'Продавец' }, cumparator: { ro: 'Cumpărător', ru: 'Покупатель' },
     agentie: { ro: 'Agenție', ru: 'Агентство' },
   };
+  Object.entries({ locator: 'Landlord', locatar: 'Tenant', vanzator: 'Seller', cumparator: 'Buyer', agentie: 'Agency' }).forEach(([k, v]) => { PARTY[k].en = v; PARTY[k].roen = PARTY[k].ro + ' / ' + v; });
   const L = {
-    ro: { idnp: 'IDNP', dom: 'Domiciliu', tel: 'Telefon', sign: 'Semnătura', sig: 'semnătura', idno: 'IDNO', seat: 'Sediu', rep: 'Reprezentant', ls: 'L.Ș.',
+    ro: { idnp: 'IDNP', pas: 'Pașaport', dom: 'Domiciliu', tel: 'Telefon', sign: 'Semnătura', sig: 'semnătura', idno: 'IDNO', seat: 'Sediu', rep: 'Reprezentant', ls: 'L.Ș.',
           nr: 'Nr.', den: 'Denumire', stare: 'Stare', serv: 'Denumire serviciu', ind: 'Indicatori',
           met: [['Energia electrică', 'Iluminarea scării'], ['Apă', 'Ascensor'], ['Gaz', 'Telefon'], ['Canalizare', 'Cablu TV'], ['Salubrizare', 'Internet']] },
-    ru: { idnp: 'IDNP', dom: 'Адрес', tel: 'Телефон', sign: 'Подпись', sig: 'подпись', idno: 'IDNO', seat: 'Адрес', rep: 'Представитель', ls: 'М.П.',
+    ru: { idnp: 'IDNP', pas: 'Паспорт', dom: 'Адрес', tel: 'Телефон', sign: 'Подпись', sig: 'подпись', idno: 'IDNO', seat: 'Адрес', rep: 'Представитель', ls: 'М.П.',
           nr: '№', den: 'Наименование', stare: 'Состояние', serv: 'Услуга', ind: 'Показания',
           met: [['Электроэнергия', 'Освещение лестницы'], ['Вода', 'Лифт'], ['Газ', 'Телефон'], ['Канализация', 'Кабельное ТВ'], ['Вывоз мусора', 'Интернет']] },
+    en: { idnp: 'IDNP', pas: 'Passport', dom: 'Address', tel: 'Phone', sign: 'Signature', sig: 'signature', idno: 'IDNO', seat: 'Registered office', rep: 'Representative', ls: 'L.S.',
+          nr: 'No.', den: 'Item', stare: 'Condition', serv: 'Service', ind: 'Reading',
+          met: [['Electricity', 'Stairwell lighting'], ['Water', 'Elevator'], ['Gas', 'Telephone'], ['Sewerage', 'Cable TV'], ['Waste collection', 'Internet']] },
   };
+  /* bilingual labels "Română / English" for the RO + EN contract */
+  L.roen = {}; Object.keys(L.ro).forEach(k => { const a = L.ro[k], b = L.en[k];
+    L.roen[k] = Array.isArray(a) ? a.map((r, i) => r.map((x, j) => x + ' / ' + b[i][j])) : a === b ? a : a + ' / ' + b; });
 
   /* ---------- parse DSL: conditions, numbering, references ---------- */
   function parse(src, V) {
@@ -577,7 +598,7 @@ const DK = (() => {
       else if (t === 'J') { j++; b.num = `${s}.${i}.${j}.`; if (b.a[0] && b.a[0].length > 1) labels[b.a[0].slice(1)] = `${s}.${i}.${j}`; }
       out.push(b);
     });
-    out.forEach(b => { b.a = b.a.map(x => x.replace(/\{@(\w+)\}/g, (_, k) => labels[k] || '?')); });
+    out.forEach(b => { b.a = b.a.map(x => x.replace(/\{@(\w+)\}/g, (_, k) => labels[k] || '?').replace(/\{=(\w+)\}/g, (_, k) => V[k] || '')); if (b.t === 'SIGN') b.V = V; });
     /* the last chapter stays on the same page as the parties' signatures, so they never end up alone on a page */
     out.forEach((b, k) => {
       if (b.t !== 'PC') return;
@@ -608,19 +629,30 @@ const DK = (() => {
                 { fs: 10.5, ts: 11.5, hb: 5, ha: 2, ia: 0.5, pa: 2 }, { fs: 10, ts: 11, hb: 4, ha: 1.5, ia: 0, pa: 1.5 }];
   const fitOf = f => FITS[Math.max(0, Math.min(FITS.length - 1, f | 0))];
   let PS = 'margin:0;line-height:1.15;font-size:11pt;text-align:justify';
-  function partyCellHTML(p, lang) {
-    const l = L[lang], role = PARTY[p][lang], line = (lab, k) => `<p style="${PS};text-align:left">${lab}: <span class="f" data-k="${k}"></span></p>`;
+  function partyCellHTML(p, lang, V) {
+    const l = L[lang], idl = V && V[p + '_idkind'] === 'pas' ? l.pas : l.idnp, role = PARTY[p][lang], line = (lab, k) => `<p style="${PS};text-align:left">${lab}: <span class="f" data-k="${k}"></span></p>`;
     let h = `<p style="${PS};text-align:left;font-weight:700">${role}</p><p style="${PS}">&nbsp;</p>`;
     if (p === 'agentie') h += `<p style="${PS};text-align:left"><span class="f" data-k="agentie_denumire"></span></p>` + line(l.idno, 'agentie_idno') + line(l.seat, 'agentie_adresa') + line(l.rep, 'agent_nume');
-    else h += `<p style="${PS};text-align:left"><span class="f" data-k="${p}_nume"></span></p>` + line(l.idnp, p + '_idnp') + line(l.dom, p + '_domiciliu') + line(l.tel, p + '_tel');
+    else h += `<p style="${PS};text-align:left"><span class="f" data-k="${p}_nume"></span></p>` + line(idl, p + '_idnp') + line(l.dom, p + '_domiciliu') + line(l.tel, p + '_tel');
     h += `<p style="${PS}">&nbsp;</p><p style="${PS};text-align:left">${l.sign} ____________${p === 'agentie' ? ' ' + l.ls : ''}</p>`;
     return h;
   }
-  function toHTML(blocks, lang, fit) {
-    const l = L[lang], F = fitOf(fit);
-    PS = `margin:0;line-height:1.15;font-size:${F.fs}pt;text-align:justify`;
-    return blocks.map(b => {
-      const pb = (b.pb ? ' pbb' : '') + (b.keep ? ' kn kl' : '');
+  const setPS = F => { PS = `margin:0;line-height:1.15;font-size:${F.fs}pt;text-align:justify`; };
+  function toHTML(blocks, lang, fit) { const F = fitOf(fit); setPS(F); return blocks.map(b => blockHTML(b, lang, F)).join('\n'); }
+  const SINGLE = ['SIGN', 'TINV', 'TMET'];
+  /* RO + EN: each point is a two-column row (Romanian left, English right); signatures and tables are shared, with bilingual labels */
+  function toHTMLBi(pr, fit) {
+    const F = fitOf(fit); setPS(F);
+    return pr.map(([a, e]) => {
+      if (SINGLE.includes(a.t)) return blockHTML(a, 'roen', F);
+      const cls = (a.pb ? ' pbb' : '') + (a.keep || ['T', 'H', 'PC'].includes(a.t) ? ' kn' : '');
+      const ro = blockHTML(Object.assign({}, a, { pb: false, keep: false }), 'ro', F);
+      const en = blockHTML(Object.assign({}, e, { pb: false, keep: false }), 'en', F).replace(/data-k="(\w+)"/g, 'data-k="$1__en"');
+      return `<table class="bi${cls}" style="width:100%;table-layout:fixed;border-collapse:collapse"><tr><td style="width:50%;padding:0 2.5mm 0 0;vertical-align:top">${ro}</td><td style="width:50%;padding:0 0 0 2.5mm;vertical-align:top">${en}</td></tr></table>`;
+    }).join('\n');
+  }
+  function blockHTML(b, lang, F) {
+      const l = L[lang], pb = (b.pb ? ' pbb' : '') + (b.keep ? ' kn kl' : '');
       switch (b.t) {
         case 'T': return `<p class="kn${pb}" style="${PS};text-align:center;font-weight:700;font-size:${F.ts}pt;margin-bottom:2pt">${inlineHTML(b.a[0])}</p>`;
         case 'ST': return `<p class="kn${pb}" style="${PS};text-align:center;font-weight:700;margin-bottom:8pt">${inlineHTML(b.a[0])}</p>`;
@@ -633,7 +665,7 @@ const DK = (() => {
         case 'I': return `<p class="${pb}" style="${PS};margin-left:28.35pt;text-indent:-28.35pt;margin-bottom:${F.ia}pt"><span class="nl" style="width:28.35pt">${b.num}</span>${inlineHTML(b.a[1])}</p>`;
         case 'J': return `<p class="${pb}" style="${PS};margin-left:62.35pt;text-indent:-34pt;margin-bottom:${F.ia}pt"><span class="nl" style="width:34pt">${b.num}</span>${inlineHTML(b.a[1])}</p>`;
         case 'SIGN': { const ps = b.a[0].split(','), w = (100 / ps.length).toFixed(2);
-          return `<table class="sign${pb}" style="width:100%;margin-top:6pt"><tr>${ps.map(p => `<td style="width:${w}%;padding:0 4pt 0 0">${partyCellHTML(p, lang)}</td>`).join('')}</tr></table>`; }
+          return `<table class="sign${pb}" style="width:100%;margin-top:6pt"><tr>${ps.map(p => `<td style="width:${w}%;padding:0 4pt 0 0">${partyCellHTML(p, lang, b.V)}</td>`).join('')}</tr></table>`; }
         case 'TINV': { let r = `<tr><td style="border:1px solid #000;width:9%"><p style="${PS};text-align:center;font-weight:700">${l.nr}</p></td><td style="border:1px solid #000;width:61%"><p style="${PS};text-align:center;font-weight:700">${l.den}</p></td><td style="border:1px solid #000;width:30%"><p style="${PS};text-align:center;font-weight:700">${l.stare}</p></td></tr>`;
           for (let k = 1; k <= 15; k++) r += `<tr><td style="border:1px solid #000"><p style="${PS};text-align:center">${k}</p></td><td style="border:1px solid #000"><p style="${PS};text-align:left"><span class="f" data-k="inv_${k}"></span>&nbsp;</p></td><td style="border:1px solid #000"><p style="${PS}">&nbsp;</p></td></tr>`;
           return `<table class="${pb}" style="width:100%;margin:3pt 0 6pt">${r}</table>`; }
@@ -644,11 +676,10 @@ const DK = (() => {
           return `<table class="${pb}" style="width:100%;margin:3pt 0 6pt">${r}</table>`; }
       }
       return '';
-    }).join('\n');
   }
   function footerHTML(parties, lang) {
     const l = L[lang], w = (100 / parties.length).toFixed(2);
-    return `<table style="width:100%;font-size:10.5pt"><tr>${parties.map(p => `<td style="width:${w}%;padding:0"><p style="margin:0;line-height:1.15">${PARTY[p][lang]} ${parties.length > 2 ? '__________' : '______________'} <span style="font-size:9pt">(${l.sig})</span></p></td>`).join('')}</tr></table>`;
+    return `<table style="width:100%;font-size:10.5pt"><tr>${parties.map(p => `<td style="width:${w}%;padding:0"><p style="margin:0;line-height:1.15">${PARTY[p][lang]} ${parties.length > 2 || lang === 'roen' ? '__________' : '______________'} <span style="font-size:9pt">(${l.sig})</span></p></td>`).join('')}</tr></table>`;
   }
 
   /* ---------- DOCX ---------- */
@@ -680,21 +711,35 @@ const DK = (() => {
     return `<w:tbl><w:tblPr><w:tblW w:w="${widths.reduce((a, b) => a + b, 0)}" w:type="dxa"/>${bd}<w:tblLayout w:type="fixed"/><w:tblCellMar><w:left w:w="85" w:type="dxa"/><w:right w:w="85" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>${grid}</w:tblGrid>${rows.map(r => `<w:tr><w:trPr><w:cantSplit/></w:trPr>${r.map((c, i) => cellXML(widths[i], c, border)).join('')}</w:tr>`).join('')}</w:tbl>`;
   }
   function partyCellXML(p, lang, V, blank) {
-    const l = L[lang], P = (s, jc, b) => para(runs(s, V, blank, b ? '' : ''), { jc: jc || 'left' });
+    const l = L[lang], idl = V[p + '_idkind'] === 'pas' ? l.pas : l.idnp, P = (s, jc, b) => para(runs(s, V, blank, b ? '' : ''), { jc: jc || 'left' });
     let x = para(`<w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t>${X(PARTY[p][lang])}</w:t></w:r>`, { jc: 'left' }) + para('', {});
     if (p === 'agentie') x += P('{agentie_denumire}') + P(`${l.idno}: {agentie_idno}`) + P(`${l.seat}: {agentie_adresa}`) + P(`${l.rep}: {agent_nume}`);
-    else x += P(`{${p}_nume}`) + P(`${l.idnp}: {${p}_idnp}`) + P(`${l.dom}: {${p}_domiciliu}`) + P(`${l.tel}: {${p}_tel}`);
+    else x += P(`{${p}_nume}`) + P(`${idl}: {${p}_idnp}`) + P(`${l.dom}: {${p}_domiciliu}`) + P(`${l.tel}: {${p}_tel}`);
     x += para('', {}) + P(`${l.sign} ____________${p === 'agentie' ? ' ' + l.ls : ''}`);
     return x;
   }
-  function bodyXML(blocks, lang, V, blank, fit) {
-    const l = L[lang], F = fitOf(fit), tw = x => Math.round(x * 20);
-    return blocks.map(b => {
-      const pb = b.pb, kp = b.keep ? 1 : 0;
+  function bodyXML(blocks, lang, V, blank, fit) { const F = fitOf(fit); return blocks.map(b => blockXML(b, lang, V, blank, F)).join(''); }
+  const GLUE = '<w:p><w:pPr><w:keepNext/><w:spacing w:before="0" w:after="0" w:line="40" w:lineRule="exact"/></w:pPr></w:p>';
+  function bodyXMLBi(pr, V, Ven, blank, fit) {
+    const F = fitOf(fit), half = Math.floor(TW / 2), out = []; let rows = [];
+    const cell = (c, side) => `<w:tc><w:tcPr><w:tcW w:w="${half}" w:type="dxa"/><w:tcMar>${side ? '<w:left w:w="142" w:type="dxa"/>' : '<w:right w:w="142" w:type="dxa"/>'}</w:tcMar></w:tcPr>${c}</w:tc>`;
+    const flush = () => { if (!rows.length) return;
+      out.push(`<w:tbl><w:tblPr><w:tblW w:w="${half * 2}" w:type="dxa"/><w:tblBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/></w:tblBorders><w:tblLayout w:type="fixed"/><w:tblCellMar><w:left w:w="0" w:type="dxa"/><w:right w:w="0" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid><w:gridCol w:w="${half}"/><w:gridCol w:w="${half}"/></w:tblGrid>${rows.map(r => `<w:tr>${r.keep ? '<w:trPr><w:cantSplit/></w:trPr>' : ''}${cell(r.c[0], 0)}${cell(r.c[1], 1)}</w:tr>`).join('')}</w:tbl>`, GLUE);
+      rows = []; };
+    pr.forEach(([a, e]) => {
+      if (SINGLE.includes(a.t)) { flush(); out.push(blockXML(a, 'roen', V, blank, F)); return; }
+      if (a.pb) { flush(); out.push(para('', { pb: 1 })); }
+      const dl = half - 142;
+      rows.push({ keep: a.keep || ['T', 'H', 'PC'].includes(a.t), c: [blockXML(Object.assign({}, a, { pb: false }), 'ro', V, blank, F, dl), blockXML(Object.assign({}, e, { pb: false, keep: a.keep }), 'en', Ven, blank, F, dl)] });
+    });
+    flush(); return out.join('');
+  }
+  function blockXML(b, lang, V, blank, F, dlTab) {
+      const l = L[lang], tw = x => Math.round(x * 20), pb = b.pb, kp = b.keep ? 1 : 0;
       switch (b.t) {
         case 'T': return para(runs(b.a[0], V, blank, `<w:sz w:val="${F.ts * 2}"/><w:szCs w:val="${F.ts * 2}"/>`, true), { jc: 'center', keep: 1, pb, after: 40 });
         case 'ST': return para(runs(b.a[0], V, blank, '', true), { jc: 'center', keep: 1, pb, after: 160 });
-        case 'DL': return para(runs(b.a[0], V, blank) + '<w:r><w:tab/></w:r>' + runs(b.a[1] || '', V, blank), { jc: 'left', tabs: `<w:tab w:val="right" w:pos="${TW}"/>`, before: 120, after: 160, pb });
+        case 'DL': return para(runs(b.a[0], V, blank) + '<w:r><w:tab/></w:r>' + runs(b.a[1] || '', V, blank), { jc: 'left', tabs: `<w:tab w:val="right" w:pos="${dlTab || TW}"/>`, before: 120, after: 160, pb });
         case 'P': return para(runs(b.a[0], V, blank), { pb, after: tw(F.pa), keep: kp, keepLines: kp });
         case 'PC': return para(runs(b.a[0], V, blank), { jc: 'center', pb, keep: 1, after: 60 });
         case 'PR': return para(runs(b.a[0], V, blank), { jc: 'right', pb });
@@ -714,20 +759,25 @@ const DK = (() => {
           return (pb ? para('', { pb: 1 }) : '') + tableXML(W, rows, true) + para('', {}); }
       }
       return '';
-    }).join('');
   }
   function footerXML(parties, lang) {
     const l = L[lang], w = Math.floor(TW / parties.length);
-    const cells = parties.map(p => para(`<w:r><w:rPr><w:sz w:val="21"/></w:rPr><w:t xml:space="preserve">${X(PARTY[p][lang])} ${parties.length > 2 ? '__________' : '______________'} </w:t></w:r><w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:t>(${X(l.sig)})</w:t></w:r>`, { jc: 'left' }));
+    const cells = parties.map(p => para(`<w:r><w:rPr><w:sz w:val="21"/></w:rPr><w:t xml:space="preserve">${X(PARTY[p][lang])} ${parties.length > 2 || lang === 'roen' ? '__________' : '______________'} </w:t></w:r><w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:t>(${X(l.sig)})</w:t></w:r>`, { jc: 'left' }));
     const page = para('<w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:instrText xml:space="preserve"> PAGE </w:instrText></w:r><w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:t>1</w:t></w:r><w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:fldChar w:fldCharType="end"/></w:r>', { jc: 'right' });
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">${page}${tableXML(parties.map(() => w), [cells], false)}</w:ftr>`;
   }
+  const splitEn = V => { const E = {}; for (const k in V) if (k.endsWith('__en')) E[k.slice(0, -4)] = V[k]; return E; };
+  function pairsOf(def, V) {
+    const Ven = splitEn(V), a = parse(def.body.roen.ro, V), e = parse(def.body.roen.en, Ven);
+    if (a.length !== e.length || a.some((b, i) => b.t !== e[i].t)) throw new Error('RO/EN texts are not aligned');
+    return { pr: a.map((b, i) => [b, e[i]]), Ven };
+  }
   async function docx(def, lang, V, blank, fit) {
-    const F = fitOf(fit);
-    const blocks = parse(def.body[lang], V);
+    fit = Math.max(fit | 0, def.minFit || 0);
+    const F = fitOf(fit), bi = lang === 'roen';
     const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
     const sect = `<w:sectPr><w:footerReference w:type="default" r:id="rIdF"/><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="993" w:right="707" w:bottom="1276" w:left="1701" w:header="567" w:footer="510" w:gutter="0"/></w:sectPr>`;
-    const doc = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${W}><w:body>${bodyXML(blocks, lang, V, blank, fit)}${sect}</w:body></w:document>`;
+    const doc = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${W}><w:body>${bi ? (({ pr, Ven }) => bodyXMLBi(pr, V, Ven, blank, fit))(pairsOf(def, V)) : bodyXML(parse(def.body[lang], V), lang, V, blank, fit)}${sect}</w:body></w:document>`;
     const lng = lang === 'ru' ? 'ru-RU' : 'ro-RO';
     const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles ${W}><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="Times New Roman" w:cs="Times New Roman"/><w:color w:val="000000"/><w:sz w:val="${F.fs * 2}"/><w:szCs w:val="${F.fs * 2}"/><w:lang w:val="${lng}" w:eastAsia="${lng}" w:bidi="ar-SA"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style><w:style w:type="table" w:default="1" w:styleId="TableNormal"><w:name w:val="Normal Table"/><w:tblPr><w:tblInd w:w="0" w:type="dxa"/><w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:left w:w="108" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:right w:w="108" w:type="dxa"/></w:tblCellMar></w:tblPr></w:style></w:styles>`;
     const settings = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:settings ${W}><w:defaultTabStop w:val="708"/><w:characterSpacingControl w:val="doNotCompress"/><w:compat><w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/></w:compat></w:settings>`;
@@ -741,7 +791,11 @@ const DK = (() => {
     zip.file('word/footer1.xml', footerXML(def.parties, lang)); zip.file('word/_rels/document.xml.rels', drels);
     return zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
   }
-  function frag(def, lang, V, fit) { const blocks = parse(def.body[lang], V); return { body: toHTML(blocks, lang, fit), footer: footerHTML(def.parties, lang) }; }
+  function frag(def, lang, V, fit) {
+    fit = Math.max(fit | 0, def.minFit || 0);
+    const body = lang === 'roen' ? toHTMLBi(pairsOf(def, V).pr, fit) : toHTML(parse(def.body[lang], V), lang, fit);
+    return { body, footer: footerHTML(def.parties, lang) };
+  }
   return { RO, RU, money, months, days, date, addMonths, num, fmtNum, frag, docx, parse, PARTY, L, FITS: FITS.length };
 })();
 
@@ -750,7 +804,7 @@ const RENT_RO = String.raw`
 T|CONTRACT DE LOCAȚIUNE nr. {nr}
 DL|{localitate}|{data_contract}
 P|{locator_nume}, IDNP {locator_idnp}, numit/ă în continuare „Locator”, pe de o parte, și
-P|{locatar_nume}, IDNP {locatar_idnp}, numit/ă în continuare „Locatar”, pe de altă parte, denumiți împreună „Părți”, au încheiat prezentul Contract în următoarele condiții:
+P|{locatar_nume}, {=locatar_idlab} {locatar_idnp}, numit/ă în continuare „Locatar”, pe de altă parte, denumiți împreună „Părți”, au încheiat prezentul Contract în următoarele condiții:
 H|#|OBIECTUL CONTRACTULUI
 I|#obj|Locatorul transmite în locațiune Locatarului bunul imobil amplasat la adresa {adresa}, cu suprafața de {suprafata} m², numit în continuare „Bun imobil”, în scop de locuință pentru Locatar și {persoane}.
 I|#|Locatarul primește în locațiune Bunul imobil menționat la pct. {@obj} în condițiile achitării locațiunii lunare și a serviciilor comunale de care va beneficia în perioada locațiunii, conform facturilor prezentate de furnizori.
@@ -826,7 +880,8 @@ H|#|DISPOZIȚII FINALE
 I|#|Prezentul contract intră în vigoare la data semnării și acționează până la expirarea termenului locațiunii și îndeplinirea tuturor obligațiilor asumate de Părți.
 I|#|Prezentul contract conține toate condițiile negociate de Părți și înlătură orice altă înțelegere orală sau scrisă anterioară.
 I|#|Modificările și completările la prezentul contract sunt valabile numai dacă sunt întocmite în formă scrisă și semnate de Părți. Anexele la prezentul contract sunt părți integrante ale acestuia.
-I|#|Prezentul contract este întocmit în limba română, în două exemplare originale, având aceeași putere juridică, câte unul pentru fiecare Parte.
+!_bi I|#|Prezentul contract este întocmit în limba română, în două exemplare originale, având aceeași putere juridică, câte unul pentru fiecare Parte.
+?_bi I|#|Prezentul contract este întocmit în limbile română și engleză, în două exemplare originale, având aceeași putere juridică, câte unul pentru fiecare Parte. În caz de neconcordanță între cele două versiuni, prevalează versiunea în limba română.
 SP
 PC|**PĂRȚILE:**
 SIGN|locator,locatar
@@ -866,7 +921,7 @@ const RENT_RU = String.raw`
 T|ДОГОВОР НАЙМА ЖИЛОГО ПОМЕЩЕНИЯ № {nr}
 DL|{localitate}|{data_contract}
 P|{locator_nume}, IDNP {locator_idnp}, именуемый(-ая) в дальнейшем «Наймодатель», с одной стороны, и
-P|{locatar_nume}, IDNP {locatar_idnp}, именуемый(-ая) в дальнейшем «Наниматель», с другой стороны, вместе именуемые «Стороны», заключили настоящий Договор о нижеследующем:
+P|{locatar_nume}, {=locatar_idlab} {locatar_idnp}, именуемый(-ая) в дальнейшем «Наниматель», с другой стороны, вместе именуемые «Стороны», заключили настоящий Договор о нижеследующем:
 H|#|ПРЕДМЕТ ДОГОВОРА
 I|#obj|Наймодатель передаёт Нанимателю в наём недвижимое имущество, расположенное по адресу {adresa}, площадью {suprafata} м², именуемое в дальнейшем «Недвижимое имущество», для проживания Нанимателя и {persoane}.
 I|#|Наниматель принимает в наём Недвижимое имущество, указанное в п. {@obj}, при условии ежемесячной оплаты найма и коммунальных услуг, которыми он будет пользоваться в период найма, согласно счетам поставщиков.
@@ -974,6 +1029,122 @@ P|5. Возражения по техническому состоянию во�
 P|6. Задолженность по оплате найма: {datorii_chirie}.
 P|7. Задолженность по коммунальным услугам: {datorii_comunale}.
 P|8. Показания счётчиков на дату составления настоящего акта:
+TMET
+`;
+
+/* ===== Lease Agreement — EN (line-by-line translation of RENT_RO; used in the RO + EN bilingual contract) ===== */
+const RENT_EN = String.raw`
+T|LEASE AGREEMENT No. {nr}
+DL|{localitate}|{data_contract}
+P|{locator_nume}, IDNP {locator_idnp}, hereinafter referred to as the “Landlord”, on the one hand, and
+P|{locatar_nume}, {=locatar_idlab} {locatar_idnp}, hereinafter referred to as the “Tenant”, on the other hand, jointly referred to as the “Parties”, have concluded this Agreement on the following terms:
+H|#|SUBJECT OF THE AGREEMENT
+I|#obj|The Landlord leases to the Tenant the immovable property located at {adresa}, with an area of {suprafata} m², hereinafter referred to as the “Property”, for residential use by the Tenant and {persoane}.
+I|#|The Tenant accepts the lease of the Property referred to in clause {@obj} on condition of paying the monthly rent and the utility services used during the lease, according to the invoices issued by the providers.
+I|#|The Landlord holds the right of {drept} over the Property.
+H|#|RENT AND PAYMENT TERMS
+I|#|The monthly rent amounts to {chirie}.
+I|#|The monthly rent is paid by the Tenant in advance, in cash or by bank transfer, no later than the {zi_plata} for the following month.
+I|#|The monthly rent does not include the cost of utilities.
+I|#|The Tenant pays, through the Landlord, all current costs of use and normal maintenance of the Property and all utility services of the premises, including other services used, within 5 days of receiving the corresponding invoices or in due time to ensure their payment.
+I|#|In total, upon signing this Agreement, the Tenant pays the amount of {suma_totala}, consisting of the rent for {luni_avans} and the security deposit.
+H|#|SECURITY DEPOSIT
+I|#|Upon signing this Agreement, the Tenant hands over to the Landlord a Security Deposit in the amount of {garantie}, to secure compliance with the terms of this Agreement and the integrity of the Property and of the movable goods received for use together with the Property. The Security Deposit is not a rent payment, unless the Parties agree otherwise in writing.
+I|#|The Security Deposit is not returned to the Tenant in the event of early termination of this Agreement at the Tenant’s request without the notice provided in clause {@preaviz}, or through the Tenant’s fault. Likewise, the Security Deposit is not returned until the material damage caused to the Property, its furniture and household appliances has been recovered.
+I|#|The Security Deposit may not be used to pay for utility services and/or to cover damage resulting from normal wear and tear of the Property.
+I|#gar|Upon expiry of this Agreement and provided that the Tenant has complied with its terms, the Landlord returns the Security Deposit to the Tenant within no more than 5 (five) working days of signing, without objections, the Property Return Certificate (Annex No. 2).
+H|#|LEASE TERM. TERMINATION OF THE AGREEMENT
+I|#|The lease term of the Property is {termen}, from {data_inceput} to {data_sfarsit}.
+I|#|This Agreement may be terminated early at any time by written agreement of the Parties.
+I|#|The right of termination is exercised by the entitled Party by written notice delivered to the other Party.
+I|#|The Landlord is entitled to demand termination of the Agreement if the Tenant:
+J|#|does not use the Property for its intended purpose or in accordance with the Agreement;
+J|#|intentionally or negligently allows the condition of the Property to deteriorate or creates a real danger of such deterioration;
+J|#|fails to pay the rent within 5 (five) days after the payment deadline;
+J|#|concludes a sublease agreement without the Landlord’s consent.
+I|#|The Landlord is also entitled to demand termination of the Agreement in the event of sale of the Property, provided that the Tenant is given 30 calendar days’ notice.
+I|#|The Landlord is entitled to terminate the Agreement in the event of non-performance of a contractual obligation if the Landlord has granted the Tenant, by notice, a reasonable additional period for performance and the Tenant has not performed the obligation within that period. If the period granted is unreasonably short or no period has been set, the Landlord may declare termination only after a reasonable period has elapsed from the date on which the notice takes effect.
+I|#|The Landlord is entitled to terminate the Agreement before the obligation falls due if the Tenant has declared that it will not perform it or if it is otherwise clear that it will not perform it, provided that the non-performance would be fundamental.
+I|#rezt|The Tenant is entitled to demand termination of the Agreement if:
+J|#|the Landlord has not handed over the Property within the agreed period;
+J|#|the Property cannot be fully used because of material or legal defects that are not related to the Tenant;
+J|#|the Tenant has lost the capacity to work and cannot use the Property;
+J|#|the Tenant is deprived of liberty and cannot perform the contractual obligations.
+I|#|In the cases provided in clause {@rezt}, the Tenant notifies the Landlord in writing of the defects found and grants a reasonable period of no more than 10 (ten) days to remedy them. If the Landlord does not remedy the defects within the period granted, the Tenant is entitled to terminate this Agreement.
+I|#|Upon expiry of the lease term, the Agreement may be extended by an addendum signed by the Parties. In the absence of an addendum, the Tenant vacates and returns the Property under the terms of clause {@restit}.
+H|#|HANDOVER OF THE PROPERTY
+I|#|The Property is handed over on the basis of the Handover Certificate (Annex No. 1 to this Agreement), which records the condition of the Property and of the movable goods leased (if any such goods have been handed over).
+I|#|The Property is handed over to the Tenant within no more than 3 (three) days of signing this Agreement.
+I|#|The Property is returned on the basis of the Property Return Certificate (Annex No. 2 to this Agreement), which records the condition of the returned Property.
+I|#|Upon return of the Property and of the movable goods (if any such goods have been handed over for use), their condition must correspond to that recorded in the Handover Certificate, taking normal wear and tear into account.
+I|#restit|The Property is returned by the Tenant and accepted by the Landlord within 2 (two) working days of the expiry of the lease term.
+H|#|RIGHTS AND OBLIGATIONS OF THE PARTIES
+I|#|The Landlord:
+J|#|hands over the Property to the Tenant under the terms and within the periods provided in this Agreement;
+J|#|ensures the Tenant’s free access to the Property;
+J|#|informs the Tenant of any material defects (damage, deterioration, missing parts, etc.) and legal defects of the Property;
+J|#|remedies at its own expense the consequences of accidents not caused by the Tenant;
+J|#|refrains from any action that would disturb the Tenant’s possession and use of the Property;
+J|#|ensures that the Property complies with sanitary and fire safety standards, in accordance with the legislation of the Republic of Moldova;
+J|#|during the term of this Agreement, does not transfer the Property to third parties, free of charge or for consideration, and does not undertake obligations to do so;
+J|#|inspects the conditions of use of the Property no more than once a month, with prior notice to the Tenant;
+J|#|one month before the expiry of the Agreement, may show the Property to other prospective tenants; visits take place with prior notice to the Tenant, in the Tenant’s presence, no more than once a week;
+J|#|carries out at its own expense major repairs of the Property and its installations, unless their need was caused by the Tenant.
+I|#|The Tenant:
+J|#|pays, under the terms of this Agreement, the rent, the security deposit and the services for the Property, in full and within the established periods;
+J|#|uses the Property for the purpose stated in the Agreement, preserving and ensuring its integrity and observing the access and fire safety rules;
+J|#|may sublet the Property only with the Landlord’s written consent;
+J|#|immediately informs the Landlord of any defect or substantial damage to the Property, under penalty of compensating the damage;
+J|#|compensates the Landlord for damage (exceeding normal wear and tear) caused to the Property or to the movable goods (furniture, appliances, carpets, etc.) handed over upon signing this Agreement;
+J|#preaviz|gives the Landlord at least 1 (one) month’s notice of the intention to vacate the Property before the end of the term;
+J|#|ensures the Landlord’s access to the Property, with at least 24 hours’ notice;
+J|#|carries out at its own expense routine repairs of the Property and the replacement of consumables (light bulbs, gaskets, filters, etc.) during the lease.
+H|#|LIABILITY OF THE PARTIES
+I|#|For non-performance or improper performance of the obligations under this Agreement, the Party at fault compensates the other Party for the damage caused, in accordance with this Agreement and the legislation of the Republic of Moldova.
+I|#|For late payment of the rent and/or utility services, the Landlord may demand from the Tenant a late payment penalty of 0.5% of the overdue amount for each day of delay.
+I|#|For failure to return the Security Deposit within the period provided in clause {@gar}, the Landlord pays the Tenant a late payment penalty of 0.5% of the amount not returned for each day of delay.
+I|#|The Parties agree that keeping any pets and smoking are prohibited in the Property, under penalty of the Landlord’s right to terminate the Agreement.
+I|#|Termination of this Agreement does not release the Parties from performing the obligations that fell due before the date of termination.
+H|#|DISPUTE RESOLUTION
+I|#|The Parties will make every effort to settle amicably, through direct negotiations, all disputes arising in connection with the performance of this Agreement.
+I|#|If the disagreements cannot be settled amicably within 15 days from the start of negotiations, the dispute is referred to the competent court.
+I|#|Termination of this Agreement does not affect the clauses on dispute resolution and other clauses intended to apply after termination.
+H|#|FINAL PROVISIONS
+I|#|This Agreement enters into force on the date of signing and remains in force until the expiry of the lease term and the fulfilment of all obligations assumed by the Parties.
+I|#|This Agreement contains all the terms negotiated by the Parties and supersedes any prior oral or written agreement.
+I|#|Amendments and additions to this Agreement are valid only if made in writing and signed by the Parties. The Annexes to this Agreement form an integral part of it.
+I|#|This Agreement is drawn up in Romanian and English, in two original copies of equal legal force, one for each Party. In the event of any discrepancy between the two versions, the Romanian version prevails.
+SP
+PC|**THE PARTIES:**
+SIGN|locator,locatar
+PB
+PR|Annex No. 1
+PR|to Lease Agreement No. {nr} dated {data_contract}
+SP
+T|HANDOVER CERTIFICATE
+DL|{localitate}|{data_predare}
+P|1. The Landlord {locator_nume}, on the one hand, hands over, and the Tenant {locatar_nume}, on the other hand, accepts on lease the Property located at {adresa}, with an area of {suprafata} m².
+P|2. Together with the Property ({spatiu}), the Landlord hands over to the Tenant for use, for the duration of the lease, the following movable goods:
+TINV
+P|3. Objections to the quality of the Property and of the movable goods received: {ob_pred_calitate}.
+P|4. Objections to the technical condition of the Property: {ob_pred_tehnic}.
+P|5. Meter readings on the date of this certificate:
+TMET|1
+PB
+PR|Annex No. 2
+PR|to Lease Agreement No. {nr} dated {data_contract}
+SP
+T|PROPERTY RETURN CERTIFICATE
+DL|{localitate}|{data_restituire}
+P|1. The Tenant {locatar_nume}, on the one hand, returns, and the Landlord {locator_nume}, on the other hand, accepts the Property located at {adresa}.
+P|2. Together with the Property, the Tenant returns to the Landlord the following movable goods:
+TINV
+P|3. Objections to the quality of the returned Property: {ob_rest_imobil}.
+P|4. Objections to the quality of the returned movable goods: {ob_rest_mobile}.
+P|5. Objections to the technical condition of the returned Property: {ob_rest_tehnic}.
+P|6. Rent arrears: {datorii_chirie}.
+P|7. Utility arrears: {datorii_comunale}.
+P|8. Meter readings on the date of this certificate:
 TMET
 `;
 
@@ -1164,16 +1335,23 @@ SIGN|locator,locatar
 
 /* ===== Documents, forms and value computation ===== */
 const OPT = {
-  drept: [['proprietate', 'proprietate', 'собственности'], ['devalmasie', 'proprietate comună în devălmășie', 'общей совместной собственности'], ['cote', 'proprietate comună pe cote-părți', 'общей долевой собственности'], ['uzufruct', 'uzufruct', 'узуфрукта'], ['procura', 'administrare în baza procurii', 'управления на основании доверенности']],
+  drept: [['proprietate', 'proprietate', 'собственности', 'ownership'], ['devalmasie', 'proprietate comună în devălmășie', 'общей совместной собственности', 'joint ownership'], ['cote', 'proprietate comună pe cote-părți', 'общей долевой собственности', 'shared ownership in shares'], ['uzufruct', 'uzufruct', 'узуфрукта', 'usufruct'], ['procura', 'administrare în baza procurii', 'управления на основании доверенности', 'management under a power of attorney']],
   tip: [['ap', 'apartament', 'квартира'], ['casa', 'casă de locuit', 'жилой дом'], ['teren', 'teren', 'земельный участок'], ['com', 'spațiu comercial', 'коммерческое помещение']],
   chelt: [['cump', 'Cumpărător', 'Покупателя'], ['vanz', 'Vânzător', 'Продавца'], ['egal', 'Vânzător și Cumpărător, în părți egale', 'Продавца и Покупателя в равных долях']],
   platitor: [['vanz', 'Vânzător', 'Продавцом'], ['cump', 'Cumpărător', 'Покупателем'], ['ambii', 'Vânzător și Cumpărător, în părți egale', 'Продавцом и Покупателем в равных долях']],
   retinere: [['30', '30% (treizeci la sută)', '30% (тридцать процентов)'], ['50', '50% (cincizeci la sută)', '50% (пятьдесят процентов)']],
   imputare: [['chirie', 'plata locațiunii pentru prima lună', 'оплату найма за первый месяц'], ['garantie', 'garanția financiară', 'финансовую гарантию']],
 };
-const optLabel = (list, v, lang) => { const o = OPT[list].find(x => x[0] === v); return o ? (lang === 'ru' ? o[2] : o[1]) : ''; };
-const PERS = { ro: 'membrii familiei sale', ru: 'членов его (её) семьи' };
-const LOC_DEF = { ro: 'mun. Chișinău', ru: 'мун. Кишинэу' };
+const optLabel = (list, v, lang) => { const o = OPT[list].find(x => x[0] === v); return o ? (lang === 'ru' ? o[2] : lang === 'en' ? (o[3] || o[1]) : o[1]) : ''; };
+const PERS = { ro: 'membrii familiei sale', ru: 'членов его (её) семьи', en: 'members of his/her family' };
+const LOC_DEF = { ro: 'mun. Chișinău', ru: 'мун. Кишинэу', en: 'Chisinau municipality' };
+/* identity document of the tenant: IDNP (Moldova) or passport number (letters and digits allowed) */
+const ID_LAB = { pas: { ro: 'pașaport nr.', ru: 'паспорт №', en: 'passport no.' } };
+const withPassport = g => { const fs = g.fields.slice(), i = fs.findIndex(x => x.k === g.id + '_idnp');
+  fs[i] = Object.assign({}, fs[i], { when: s => s[g.id + '_idtip'] !== 'pas' });
+  fs.splice(i, 0, f(g.id + '_idtip', 'Act de identitate', 'seg', { seg: 'idtip' }));
+  fs.splice(i + 2, 0, f(g.id + '_pas', 'Nr. pașaport', 'pas', { ph: 'ex. FX 123456', when: s => s[g.id + '_idtip'] === 'pas' }));
+  return Object.assign({}, g, { fields: fs }); };
 
 /* field helpers (UI is in Romanian) */
 const f = (k, label, type, o) => Object.assign({ k, label, type: type || 'text' }, o || {});
@@ -1188,6 +1366,7 @@ const METERS = [[1, 'Energia electrică', 'ex. 12 345 kWh'], [3, 'Apă', 'ex. 24
   [2, 'Iluminarea scării', 'ex. achitat la zi'], [4, 'Ascensor', 'ex. achitat la zi'], [9, 'Salubrizare', 'ex. achitat la zi'], [6, 'Telefon', 'ex. nu este'],
   [8, 'Cablu TV', 'ex. nu este'], [10, 'Internet', 'ex. achitat la zi']];
 const SEG = {
+  idtip: [['idnp', 'IDNP'], ['pas', 'Pașaport']],
   moneda: [['lei', 'lei'], ['euro', 'euro']],
   termen: [['', '—'], ['6', '6 luni'], ['11', '11'], ['12', '12'], ['24', '24']],
   luni: [['', '—'], ['1', '1 lună'], ['2', '2 luni'], ['3', '3 luni']],
@@ -1205,7 +1384,7 @@ const FORMS = {
     groups: [
       { id: 'contract', title: 'Contract', fields: [f('nr', 'Număr', 'num', { ph: 'ex. 12', short: 1 }), f('data_contract', 'Data', 'date'), f('localitate', 'Localitatea', 'text', { ph: 'mun. Chișinău', opt: 1 })] },
       Object.assign(party('locator', 'Locator · proprietar'), {}),
-      party('locatar', 'Locatar · chiriaș'),
+      withPassport(party('locatar', 'Locatar · chiriaș')),
       { id: 'imobil', title: 'Bunul imobil', fields: [f('adresa', 'Adresa completă', 'text', { ph: 'mun. Chișinău, str. Ion Creangă 49, ap. 85' }), f('suprafata', 'Suprafața, m²', 'num', { ph: 'ex. 54', dec: 1, short: 1 }), f('spatiu', 'Se transmite', 'text', { ph: 'ex. întregul bun imobil' }), f('drept', 'Dreptul Locatorului', 'select', { list: 'drept' })] },
       { id: 'bani', title: 'Bani și termen', fields: [f('chirie_n', 'Chiria lunară', 'num', { ph: 'ex. 6000' }), f('moneda', 'Moneda', 'seg', { seg: 'moneda', def: 'lei' }), f('zi', 'Plata până pe', 'num', { ph: 'zi a lunii, ex. 25', max: 2 }), f('termen', 'Termenul', 'seg', { seg: 'termen' }), f('data_inceput', 'Începe la', 'date', { opt: 1 }), f('luni', 'Avans la semnare', 'seg', { seg: 'luni' }), f('garantie_n', 'Garanția', 'num', { ph: 'ex. 6000' })],
         foot: 'Dacă „Începe la” rămâne gol, termenul începe la data predării sau a contractului.' },
@@ -1218,9 +1397,10 @@ const FORMS = {
     compute(s, lang) {
       const cur = s.moneda || 'lei', ch = DK.num(s.chirie_n), g = DK.num(s.garantie_n), ln = Number(s.luni) || 0, tn = Number(s.termen) || 0;
       const V = { nr: s.nr, data_contract: DK.date(s.data_contract, lang), localitate: s.localitate || LOC_DEF[lang], adresa: s.adresa, suprafata: s.suprafata, spatiu: s.spatiu, drept: optLabel('drept', s.drept, lang),
-        chirie: DK.money(ch, cur, lang), garantie: DK.money(g, cur, lang), zi_plata: s.zi ? (lang === 'ru' ? `${s.zi}-го` : `${s.zi} a fiecărei luni`) : '',
+        chirie: DK.money(ch, cur, lang), garantie: DK.money(g, cur, lang), zi_plata: s.zi ? (lang === 'ru' ? `${s.zi}-го` : lang === 'en' ? `${s.zi}${ordEn(s.zi)} day of each month` : `${s.zi} a fiecărei luni`) : '',
         termen: DK.months(tn, lang), luni_avans: DK.months(ln, lang), data_predare: DK.date(s.data_predare || s.data_contract, lang) };
       ['locator', 'locatar'].forEach(p => ['nume', 'idnp', 'domiciliu', 'tel'].forEach(x => V[`${p}_${x}`] = s[`${p}_${x}`]));
+      if (s.locatar_idtip === 'pas') { V.locatar_idnp = s.locatar_pas; V.locatar_idkind = 'pas'; V.locatar_idlab = ID_LAB.pas[lang]; } else V.locatar_idlab = 'IDNP';
       V.persoane = s.persoane_opt === 'familia' ? PERS[lang] : s.persoane_opt === 'alt' ? s.persoane : '';
       const start = s.data_inceput || s.data_predare || s.data_contract;
       if (start) { V.data_inceput = DK.date(start, lang); if (tn) V.data_sfarsit = DK.date(DK.addMonths(start, tn), lang); }
@@ -1229,7 +1409,7 @@ const FORMS = {
       for (let k = 1; k <= 10; k++) V['met_' + k] = s['met_' + k];
       return { V, sum: total ? { label: 'De achitat la semnare', big: `${DK.fmtNum(total)} ${cur}`, words: `${DK.months(ln, 'ro')} de chirie + garanția` } : { label: 'De achitat la semnare', empty: 'Completează chiria, avansul și garanția' } };
     },
-    fileName: (s, lang) => `Contract_locatiune_${clean(s.nr) || 'nr'}_${clean(last(s.locatar_nume)) || 'chirias'}_${lang.toUpperCase()}.docx`,
+    fileName: (s, lang) => `Contract_locatiune_${clean(s.nr) || 'nr'}_${clean(last(s.locatar_nume)) || 'chirias'}_${lang === 'roen' ? 'RO-EN' : lang.toUpperCase()}.docx`,
   },
   arvsale: {
     groups: [
@@ -1278,6 +1458,12 @@ const FORMS = {
     fileName: (s, lang) => `Arvuna_chirie_${clean(last(s.locatar_nume)) || 'chirias'}_${clean(s.data_acord) || 'data'}_${lang.toUpperCase()}.docx`,
   },
 };
+/* RO + EN: values computed in both languages; the English ones get the suffix __en */
+Object.values(FORMS).forEach(F => { const one = F.compute;
+  F.compute = (s, lang, doc) => { if (lang !== 'roen') return one(s, lang, doc);
+    const a = one(s, 'ro', doc), b = one(s, 'en', doc), V = Object.assign({ _bi: '1' }, a.V);
+    Object.keys(b.V).forEach(k => { V[k + '__en'] = b.V[k]; }); return { V, sum: a.sum }; }; });
+const ordEn = n => { n = Number(n); const t = n % 100; return t >= 11 && t <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th'; };
 const clean = x => (x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9_-]/g, '');
 const last = x => (x || '').trim().split(/\s+/).pop();
 
@@ -1285,6 +1471,9 @@ const DOCS = [
   { id: 'locatiune', cat: 'rent', form: 'rent', parties: ['locator', 'locatar'], body: { ro: RENT_RO, ru: RENT_RU },
     title: { ro: 'Contract de locațiune', ru: 'Договор найма жилого помещения' }, n: 2,
     desc: 'Între proprietar și chiriaș: chirie, avans, garanție, termen. Cu actele de predare și de restituire.' },
+  { id: 'locatiune-en', cat: 'rent', form: 'rent', bi: true, minFit: 3, parties: ['locator', 'locatar'], body: { roen: { ro: RENT_RO, en: RENT_EN } },
+    title: { ro: 'Contract de locațiune · română + engleză', roen: 'Contract de locațiune / Lease Agreement' }, n: 2,
+    desc: 'Pentru chiriași din Israel sau din alte țări: tot contractul pe două coloane, în română și în engleză, cu anexele.' },
   { id: 'arvuna-chirie', cat: 'rent', form: 'arvrent', parties: ['locator', 'locatar'], body: { ro: ARV_RENT_RO, ru: ARV_RENT_RU },
     title: { ro: 'Acord de arvună · chirie', ru: 'Соглашение о задатке · наём' }, n: 2,
     desc: 'Rezervă apartamentul până la semnarea contractului. Arvuna intră în prima chirie sau în garanție.' },
@@ -1303,7 +1492,7 @@ const DOCS = [
 const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const $f = k => document.getElementById('f-' + k);
 const BLANK = '____________________', SHORTK = { nr: 1, suprafata: 1, zi_plata: 1 };
-const blankFn = k => SHORTK[k] ? '________' : BLANK;
+const blankFn = k => SHORTK[k.replace(/__en$/, '')] ? '________' : BLANK;
 let DOC = null, LANG = 'ro', OFFER = null;
 const segVal = { view: 'form', lang: 'ro' };
 const SEGS = Object.assign({}, SEG, { view: [['form', 'Formular'], ['doc', 'Contract']], lang: [['ro', 'Română'], ['ru', 'Русский']] });
@@ -1336,6 +1525,7 @@ function rowHTML(fd) {
     case 'inv': return `<div class="row col" data-k="${fd.k}"${hid}>${lab}<textarea id="${id}"${ph}></textarea></div>`;
     case 'date': return `<div class="row" data-k="${fd.k}"${hid}>${lab}<input id="${id}" type="date"></div>`;
     case 'idnp': return `<div class="row" data-k="${fd.k}"${hid}>${lab}<input id="${id}"${ph} inputmode="numeric" maxlength="13"><span class="warn" id="w-${fd.k}"></span></div>`;
+    case 'pas': return `<div class="row" data-k="${fd.k}"${hid}>${lab}<input id="${id}"${ph} autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="20"></div>`;
     case 'tel': return `<div class="row" data-k="${fd.k}"${hid}>${lab}<input id="${id}"${ph} inputmode="tel"></div>`;
     case 'num': return `<div class="row" data-k="${fd.k}"${hid}>${lab}<input id="${id}"${ph} inputmode="${fd.dec ? 'decimal' : 'numeric'}"${fd.max ? ` maxlength="${fd.max}"` : ''}></div>`;
     default: return `<div class="row" data-k="${fd.k}"${hid}>${lab}<input id="${id}"${ph}${fd.cap ? ' autocapitalize="words"' : ''}></div>`;
@@ -1355,6 +1545,7 @@ function buildForm() {
   groupsOf().forEach(g => g.fields.forEach(fd => {
     const el = $f(fd.k); if (!el) return;
     if (fd.type === 'idnp' || fd.type === 'num' && !fd.dec) el.addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g, ''); });
+    if (fd.type === 'pas') el.addEventListener('input', e => { const p = e.target.selectionStart; e.target.value = e.target.value.toUpperCase(); try { e.target.setSelectionRange(p, p); } catch (x) {} });
     if (fd.type === 'tel') el.addEventListener('blur', e => { e.target.value = fmtTel(e.target.value); render(); });
   }));
 }
@@ -1401,7 +1592,7 @@ function signInfo(host) {
 function bestFit(host, V) {
   const at = f => A4.render(host, DK.frag(DOC, LANG, V, f), V, blankFn);
   let n = at(0); const base = signInfo(host);
-  if (!base || base.page === 1) return { fit: 0, n };
+  if (!base || base.page === 1 || DOC.minFit) return { fit: 0, n };
   for (let f = 1; f < DK.FITS; f++) {
     const m = at(f), si = signInfo(host);
     if (si && si.page < base.page && si.spare >= 24) return { fit: f, n: m };   // ~2 lines spare, so Word lays it out the same
@@ -1436,7 +1627,8 @@ function focusField(k) {
   const el = $f(k); if (el && el.focus) setTimeout(() => el.focus({ preventScroll: true }), 350);
 }
 document.getElementById('pvHost').addEventListener('click', e => { const t = e.target.closest('.f'); if (!t || !DOC) return; let k = t.dataset.k;
-  k = k.startsWith('inv_') ? 'inv' : ((F().map || {})[k] || k); focusField(k); });
+  k = k.replace(/__en$/, ''); k = k.startsWith('inv_') ? 'inv' : ((F().map || {})[k] || k);
+  const alt = k.replace(/_idnp$/, '_pas'); if (alt !== k && segVal[k.replace(/_idnp$/, '_idtip')] === 'pas') k = alt; focusField(k); });
 
 /* ---------- output ---------- */
 async function download() {
@@ -1492,14 +1684,15 @@ function renderLib() {
   document.getElementById('libGrid').innerHTML = cats.map(cat => `<div class="libcat${OFFER && cat !== OFFER.deal ? ' dim' : ''}"><h2>${CAT[cat]}</h2><div class="lib-grid">${DOCS.filter(d => d.cat === cat).map(c => `
     <article class="ccard${fit(c) ? ' fit' : ''}" data-c="${c.id}"><span class="cicon">${ICON}</span><h3>${esc(c.title.ro)}</h3><p>${esc(c.desc)}</p>
       <div class="ctags"><span class="ctag${fit(c) ? ' fit' : ''}">${CAT[c.cat]}</span><span class="ctag">${c.n} părți</span><span class="ctag">Word + PDF</span></div>
-      <div class="clangs"><button type="button" class="cgo" data-lang="ro">${fit(c) ? 'Completează · RO' : 'Română'}</button><button type="button" class="cgo alt" data-lang="ru">Русский</button></div></article>`).join('')}</div></div>`).join('');
+      <div class="clangs">${c.bi ? `<button type="button" class="cgo" data-lang="roen">${fit(c) ? 'Completează · RO + EN' : 'Română + English'}</button>` : `<button type="button" class="cgo" data-lang="ro">${fit(c) ? 'Completează · RO' : 'Română'}</button><button type="button" class="cgo alt" data-lang="ru">Русский</button>`}</div></article>`).join('')}</div></div>`).join('');
   document.querySelectorAll('.ccard').forEach(card => card.querySelectorAll('[data-lang]').forEach(b => b.onclick = () => openGen(card.dataset.c, b.dataset.lang)));
 }
 function showPage(p) { document.body.dataset.page = p; scrollTo({ top: 0 }); if (p === 'gen') { document.querySelectorAll('.seg').forEach(paintSeg); setTimeout(() => { pvDirty ? drawPreview() : fitPreview(); }, 40); } }
 function openGen(id, lang, fromHash) {
   const d = DOCS.find(x => x.id === id); if (!d) return;
-  DOC = d; LANG = lang === 'ru' ? 'ru' : 'ro'; segVal.lang = LANG; shownTotal = 0;
+  DOC = d; LANG = d.bi ? 'roen' : lang === 'ru' ? 'ru' : 'ro'; segVal.lang = LANG; shownTotal = 0;
   document.getElementById('genTitle').textContent = d.title.ro + (LANG === 'ru' ? ' · RU' : '');
+  const lb = document.querySelector('.langbox'); if (lb) lb.style.display = d.bi ? 'none' : '';
   buildForm(); paintSeg(document.getElementById('langSeg'));
   let note = '';
   if (OFFER && OFFER.deal === d.cat) {
