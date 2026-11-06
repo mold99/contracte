@@ -268,6 +268,14 @@ body[data-page="lib"]{padding-bottom:40px}
   .page{padding:0 16px}
 }
 @media print{.nav{display:none!important}}
+.telbox{flex:1;display:flex;flex-direction:column;align-items:flex-end;min-width:0}
+.telbox input{width:100%}
+.telx{display:flex;flex-direction:column;gap:0;width:100%}
+.telx:empty{display:none}
+.telrow{display:flex;gap:6px;align-items:center;border-top:1px solid var(--line,#eee)}
+.telrow input{flex:1;min-width:0}
+.addtel,.deltel{font:inherit;font-size:13px;border:0;background:none;color:var(--gold-d);cursor:pointer;padding:0 0 10px}
+.deltel{font-size:18px;line-height:1;color:#999;padding:4px 6px}
 </style>
 <script>
 /* prototype: show the real error text (the app's preview only shows "Script error.") */
@@ -1347,6 +1355,8 @@ const PERS = { ro: 'membrii familiei sale', ru: 'членов его (её) се
 const LOC_DEF = { ro: 'mun. Chișinău', ru: 'мун. Кишинэу', en: 'Chisinau municipality' };
 /* identity document of the tenant: IDNP (Moldova) or passport number (letters and digits allowed) */
 const ID_LAB = { pas: { ro: 'pașaport nr.', ru: 'паспорт №', en: 'passport no.' } };
+/* several phone numbers per party (the form adds a field per number; the contract lists them separated by commas) */
+const multiTel = g => Object.assign({}, g, { fields: g.fields.map(x => x.k === g.id + '_tel' ? Object.assign({}, x, { type: 'tels' }) : x) });
 const withPassport = g => { const fs = g.fields.slice(), i = fs.findIndex(x => x.k === g.id + '_idnp');
   fs[i] = Object.assign({}, fs[i], { when: s => s[g.id + '_idtip'] !== 'pas' });
   fs.splice(i, 0, f(g.id + '_idtip', 'Act de identitate', 'seg', { seg: 'idtip' }));
@@ -1383,8 +1393,8 @@ const FORMS = {
   rent: {
     groups: [
       { id: 'contract', title: 'Contract', fields: [f('nr', 'Număr', 'num', { ph: 'ex. 12', short: 1 }), f('data_contract', 'Data', 'date'), f('localitate', 'Localitatea', 'text', { ph: 'mun. Chișinău', opt: 1 })] },
-      Object.assign(party('locator', 'Locator · proprietar'), {}),
-      withPassport(party('locatar', 'Locatar · chiriaș')),
+      multiTel(party('locator', 'Locator · proprietar')),
+      multiTel(withPassport(party('locatar', 'Locatar · chiriaș'))),
       { id: 'imobil', title: 'Bunul imobil', fields: [f('adresa', 'Adresa completă', 'text', { ph: 'mun. Chișinău, str. Ion Creangă 49, ap. 85' }), f('suprafata', 'Suprafața, m²', 'num', { ph: 'ex. 54', dec: 1, short: 1 }), f('spatiu', 'Se transmite', 'text', { ph: 'ex. întregul bun imobil' }), f('drept', 'Dreptul Locatorului', 'select', { list: 'drept' })] },
       { id: 'bani', title: 'Bani și termen', fields: [f('chirie_n', 'Chiria lunară', 'num', { ph: 'ex. 6000' }), f('moneda', 'Moneda', 'seg', { seg: 'moneda', def: 'lei' }), f('zi', 'Plata până pe', 'num', { ph: 'zi a lunii, ex. 25', max: 2 }), f('termen', 'Termenul', 'seg', { seg: 'termen' }), f('data_inceput', 'Începe la', 'date', { opt: 1 }), f('luni', 'Avans la semnare', 'seg', { seg: 'luni' }), f('garantie_n', 'Garanția', 'num', { ph: 'ex. 6000' })],
         foot: 'Dacă „Începe la” rămâne gol, termenul începe la data predării sau a contractului.' },
@@ -1527,6 +1537,7 @@ function rowHTML(fd) {
     case 'idnp': return `<div class="row" data-k="${fd.k}"${hid}>${lab}<input id="${id}"${ph} inputmode="numeric" maxlength="13"><span class="warn" id="w-${fd.k}"></span></div>`;
     case 'pas': return `<div class="row" data-k="${fd.k}"${hid}>${lab}<input id="${id}"${ph} autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="20"></div>`;
     case 'tel': return `<div class="row" data-k="${fd.k}"${hid}>${lab}<input id="${id}"${ph} inputmode="tel"></div>`;
+    case 'tels': return `<div class="row tels" data-k="${fd.k}"${hid}>${lab}<div class="telbox"><input id="${id}"${ph} inputmode="tel"><div class="telx"></div><button type="button" class="addtel">+ încă un număr</button></div></div>`;
     case 'num': return `<div class="row" data-k="${fd.k}"${hid}>${lab}<input id="${id}"${ph} inputmode="${fd.dec ? 'decimal' : 'numeric'}"${fd.max ? ` maxlength="${fd.max}"` : ''}></div>`;
     default: return `<div class="row" data-k="${fd.k}"${hid}>${lab}<input id="${id}"${ph}${fd.cap ? ' autocapitalize="words"' : ''}></div>`;
   }
@@ -1546,7 +1557,15 @@ function buildForm() {
     const el = $f(fd.k); if (!el) return;
     if (fd.type === 'idnp' || fd.type === 'num' && !fd.dec) el.addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g, ''); });
     if (fd.type === 'pas') el.addEventListener('input', e => { const p = e.target.selectionStart; e.target.value = e.target.value.toUpperCase(); try { e.target.setSelectionRange(p, p); } catch (x) {} });
-    if (fd.type === 'tel') el.addEventListener('blur', e => { e.target.value = fmtTel(e.target.value); render(); });
+    if (fd.type === 'tel' || fd.type === 'tels') el.addEventListener('blur', e => { e.target.value = fmtTel(e.target.value); render(); });
+    if (fd.type === 'tels') { const row = el.closest('.row'), box = row.querySelector('.telx'), add = row.querySelector('.addtel');
+      add.addEventListener('click', () => { if (box.children.length >= 3) return;
+        const w = document.createElement('div'); w.className = 'telrow';
+        w.innerHTML = '<input inputmode="tel" placeholder="alt număr"><button type="button" class="deltel" aria-label="Șterge numărul">×</button>';
+        const inp = w.querySelector('input');
+        inp.addEventListener('blur', () => { inp.value = fmtTel(inp.value); render(); }); inp.addEventListener('input', render);
+        w.querySelector('.deltel').addEventListener('click', () => { w.remove(); add.hidden = false; render(); });
+        box.appendChild(w); add.hidden = box.children.length >= 3; inp.focus(); }); }
   }));
 }
 function state() {
@@ -1554,6 +1573,8 @@ function state() {
   groupsOf().forEach(g => g.fields.forEach(fd => {
     if (fd.type === 'seg') s[fd.k] = segVal[fd.k];
     else if (fd.type === 'inv') s[fd.k] = ($f(fd.k).value || '').split('\n').map(x => x.trim()).filter(Boolean).slice(0, 15);
+    else if (fd.type === 'tels') { const row = $f(fd.k).closest('.row');
+      s[fd.k] = [$f(fd.k), ...row.querySelectorAll('.telx input')].map(i => i.value.trim()).filter(Boolean).join(', '); }
     else s[fd.k] = ($f(fd.k) ? $f(fd.k).value : '').trim();
   }));
   groupsOf().forEach(g => g.fields.forEach(fd => { if (!showField(fd, s) && fd.type !== 'seg') s[fd.k] = fd.type === 'inv' ? [] : ''; }));
@@ -1561,7 +1582,9 @@ function state() {
 }
 const isEmpty = v => Array.isArray(v) ? !v.length : !(v || '').toString().trim();
 function emptyFields(s) { const out = []; groupsOf().forEach(g => g.fields.forEach(fd => { if (!fd.opt && showField(fd, s) && isEmpty(s[fd.k])) out.push(fd); })); return out; }
-const fmtTel = v => { const d = v.replace(/\D/g, '').slice(0, 12); return d.length <= 9 ? d.replace(/^(\d{3})(\d{0,3})(\d{0,3}).*/, (m, a, b, c) => [a, b, c].filter(Boolean).join(' ')) : d; };
+const fmtTel = v => { const plus = /^\s*(\+|00)/.test(v), d = v.replace(/\D/g, '').replace(plus && /^00/.test(v.trim()) ? /^00/ : /^$/, '').slice(0, 15);
+  if (plus || d.length > 9) { const m = d.match(/^373(\d{2})(\d{3})(\d{3})$/); return '+' + (m ? `373 ${m[1]} ${m[2]} ${m[3]}` : d); }
+  return d.replace(/^(\d{3})(\d{0,3})(\d{0,3}).*/, (m, a, b, c) => [a, b, c].filter(Boolean).join(' ')); };
 const idnpOk = s => /^\d{13}$/.test(s);
 
 /* ---------- render ---------- */
